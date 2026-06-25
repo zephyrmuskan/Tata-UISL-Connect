@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TataUisl.Core", "TataUisl.Core\TataUisl.Core.csproj", "{7B890F0C-6C98-4B29-87CE-885E42491A80}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TataUisl.Infrastructure", "TataUisl.Infrastructure\TataUisl.Infrastructure.csproj", "{0F196720-D913-4E87-AC77-0FA72224A8D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TataUisl.Api", "TataUisl.Api\TataUisl.Api.csproj", "{3E92B602-CC80-4D54-B97F-C869D6740B48}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7B890F0C-6C98-4B29-87CE-885E42491A80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B890F0C-6C98-4B29-87CE-885E42491A80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B890F0C-6C98-4B29-87CE-885E42491A80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B890F0C-6C98-4B29-87CE-885E42491A80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F196720-D913-4E87-AC77-0FA72224A8D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F196720-D913-4E87-AC77-0FA72224A8D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F196720-D913-4E87-AC77-0FA72224A8D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F196720-D913-4E87-AC77-0FA72224A8D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E92B602-CC80-4D54-B97F-C869D6740B48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E92B602-CC80-4D54-B97F-C869D6740B48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E92B602-CC80-4D54-B97F-C869D6740B48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E92B602-CC80-4D54-B97F-C869D6740B48}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
