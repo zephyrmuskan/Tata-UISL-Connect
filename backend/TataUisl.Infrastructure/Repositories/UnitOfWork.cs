@@ -20,6 +20,7 @@ namespace TataUisl.Infrastructure.Repositories
             AuditLogs = new Repository<AuditLog>(_context);
             ConnectionTypes = new Repository<ConnectionType>(_context);
             ApplicationRemarks = new Repository<ApplicationRemark>(_context);
+            ApplicationStatuses = new Repository<ApplicationStatus>(_context);
             Settings = new Repository<Setting>(_context);
         }
 
@@ -31,6 +32,7 @@ namespace TataUisl.Infrastructure.Repositories
         public IRepository<AuditLog> AuditLogs { get; private set; }
         public IRepository<ConnectionType> ConnectionTypes { get; private set; }
         public IRepository<ApplicationRemark> ApplicationRemarks { get; private set; }
+        public IRepository<ApplicationStatus> ApplicationStatuses { get; private set; }
         public IRepository<Setting> Settings { get; private set; }
 
         public async Task<int> CompleteAsync()

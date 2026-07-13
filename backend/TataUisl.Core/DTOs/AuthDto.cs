@@ -40,6 +40,8 @@ namespace TataUisl.Core.DTOs
         public string Email { get; set; } = string.Empty;
         public string MobileNumber { get; set; } = string.Empty;
         public string RoleName { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string OfficerRole { get; set; } = "Customer";
         public bool IsActive { get; set; }
     }
 

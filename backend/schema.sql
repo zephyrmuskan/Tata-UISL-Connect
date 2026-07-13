@@ -15,6 +15,7 @@ CREATE TABLE [Users] (
     [PasswordHash] NVARCHAR(255) NOT NULL,
     [MobileNumber] NVARCHAR(20) NULL,
     [RoleId] INT NOT NULL,
+    [OfficerRole] NVARCHAR(50) NOT NULL DEFAULT 'Customer',
     [IsActive] BIT NOT NULL DEFAULT 1,
     [CreatedAt] DATETIME NOT NULL DEFAULT GETUTCDATE(),
     CONSTRAINT [FK_Users_Roles_RoleId] FOREIGN KEY ([RoleId]) REFERENCES [Roles]([Id]) ON DELETE RESTRICT
@@ -34,27 +35,42 @@ CREATE TABLE [Applications] (
     [CustomerId] INT NOT NULL,
     
     -- Section 1: Personal Info
-    [FullName] NVARCHAR(100) NOT NULL,
+    [FullName] NVARCHAR(100) NULL,
     [FatherName] NVARCHAR(100) NULL,
     [MotherName] NVARCHAR(100) NULL,
     [Gender] NVARCHAR(10) NULL,
-    [DateOfBirth] DATE NOT NULL,
-    [AadhaarNumber] NVARCHAR(12) NOT NULL,
-    [PanNumber] NVARCHAR(10) NOT NULL,
+    [DateOfBirth] DATE NULL,
+    [AadhaarNumber] NVARCHAR(12) NULL,
+    [PanNumber] NVARCHAR(10) NULL,
     [Occupation] NVARCHAR(100) NULL,
-    [AnnualIncome] DECIMAL(18,2) NOT NULL,
+    [AnnualIncome] DECIMAL(18,2) NULL,
+
+    [CreateNewBp] BIT NOT NULL DEFAULT 1,
+    [ExistingBpNo] NVARCHAR(50) NULL,
+    [BusinessArea] NVARCHAR(100) NULL,
+    [OwnerOrgName] NVARCHAR(100) NULL,
+    [RelationshipType] NVARCHAR(50) NULL,
+    [RelationshipName] NVARCHAR(100) NULL,
+    [IdentityCardType] NVARCHAR(50) NULL,
+    [IdentityCardNumber] NVARCHAR(100) NULL,
+    [PhoneNumber] NVARCHAR(20) NULL,
+    [AlternatePhoneNumber] NVARCHAR(20) NULL,
+    [EmailId] NVARCHAR(100) NULL,
+    [AlternateEmailId] NVARCHAR(100) NULL,
+    [VendorName] NVARCHAR(100) NULL,
+    [VendorCertificateNumber] NVARCHAR(100) NULL,
 
     -- Section 2: Address Details
-    [AddressLine1] NVARCHAR(255) NOT NULL,
+    [AddressLine1] NVARCHAR(255) NULL,
     [AddressLine2] NVARCHAR(255) NULL,
-    [City] NVARCHAR(100) NOT NULL DEFAULT 'Jamshedpur',
-    [State] NVARCHAR(100) NOT NULL DEFAULT 'Jharkhand',
-    [District] NVARCHAR(100) NOT NULL DEFAULT 'East Singhbhum',
-    [PinCode] NVARCHAR(6) NOT NULL,
+    [City] NVARCHAR(100) NULL DEFAULT 'Jamshedpur',
+    [State] NVARCHAR(100) NULL DEFAULT 'Jharkhand',
+    [District] NVARCHAR(100) NULL DEFAULT 'East Singhbhum',
+    [PinCode] NVARCHAR(6) NULL,
 
     -- Section 3: ConnectionDetails
-    [ConnectionTypeId] INT NOT NULL,
-    [ApplicationType] NVARCHAR(50) NOT NULL DEFAULT 'New Connection',
+    [ConnectionTypeId] INT NULL,
+    [ApplicationType] NVARCHAR(50) NULL DEFAULT 'New Connection',
 
     -- Section 4: Property Details
     [PropertyType] NVARCHAR(50) NULL,
@@ -64,7 +80,11 @@ CREATE TABLE [Applications] (
     [Landmark] NVARCHAR(100) NULL,
 
     -- System Fields
-    [CurrentStatus] NVARCHAR(50) NOT NULL DEFAULT 'Submitted',
+    [CurrentStatus] NVARCHAR(50) NOT NULL DEFAULT 'Draft',
+    [CurrentStage] NVARCHAR(100) NOT NULL DEFAULT 'Application Verification',
+    [Priority] NVARCHAR(50) NOT NULL DEFAULT 'Medium',
+    [DueDate] DATETIME NULL,
+    [LastUpdated] DATETIME NOT NULL DEFAULT GETUTCDATE(),
     [SubmittedDate] DATETIME NOT NULL DEFAULT GETUTCDATE(),
     [AssignedOfficer] NVARCHAR(100) NOT NULL DEFAULT 'Unassigned',
     [ProfileCompletion] INT NOT NULL DEFAULT 0,
@@ -92,6 +112,7 @@ CREATE TABLE [ApplicationStatuses] (
     [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [ApplicationId] INT NOT NULL,
     [Status] NVARCHAR(50) NOT NULL,
+    [Stage] NVARCHAR(100) NULL,
     [UpdatedDate] DATETIME NOT NULL DEFAULT GETUTCDATE(),
     [UpdatedById] INT NOT NULL,
     [Notes] NVARCHAR(MAX) NULL,
@@ -147,8 +168,12 @@ CREATE TABLE [Settings] (
 INSERT INTO [Roles] ([Name]) VALUES ('Admin'), ('Customer');
 
 -- Admin Password: Admin@123 (hashed using SHA-256)
-INSERT INTO [Users] ([FullName], [Email], [PasswordHash], [MobileNumber], [RoleId], [IsActive])
-VALUES ('Tata UISL System Admin', 'admin@tatauisl.com', 'c7d24a9e403d159048a1b5c5e88863f698e6f1df02e21c81ef40d43a68393fd4', '18003456789', 1, 1);
+INSERT INTO [Users] ([FullName], [Email], [PasswordHash], [MobileNumber], [RoleId], [OfficerRole], [IsActive])
+VALUES 
+('Tata UISL System Admin', 'admin@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '18003456789', 1, 'SuperAdmin', 1),
+('Officer 1 - Doc Verifier', 'officer1@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '9988776651', 1, 'Officer1', 1),
+('Officer 2 - Tech Surveyor', 'officer2@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '9988776652', 1, 'Officer2', 1),
+('Officer 3 - Approval Officer', 'officer3@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '9988776653', 1, 'Officer3', 1);
 
 INSERT INTO [ConnectionTypes] ([Name], [Category])
 VALUES 

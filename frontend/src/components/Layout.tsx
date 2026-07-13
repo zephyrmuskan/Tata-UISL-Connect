@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
-  Sun, Moon, Bell, LogOut, Menu, X, ChevronRight, User as UserIcon, 
+  Sun, Moon, Bell, LogOut, Menu, X, User as UserIcon, 
   FileText, Home, PlusCircle, Settings, Clipboard, Shield,
-  Clock, CheckCircle, XCircle, Users, BarChart3, UserPlus, HelpCircle, Lock, ChevronDown, Search
+  Clock, Users, BarChart3, HelpCircle, Lock, ChevronDown, Search,
+  ChevronRight, RefreshCw, Play, AlertCircle, CheckCircle, Truck
 } from 'lucide-react';
-import { authService, notificationService } from '../services/api';
-import { type User, type Notification } from '../services/mockData';
+import { authService, notificationService, applicationService } from '../services/api';
+import { type User, type Notification, type Application } from '../services/mockData';
 import { toast } from 'react-toastify';
 import { TataEmblem } from './TataLogo';
 
@@ -35,6 +36,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [notifDrawerOpen, setNotifDrawerOpen] = useState<boolean>(false);
   const [helpModalOpen, setHelpModalOpen] = useState<boolean>(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState<boolean>(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+  
+  // Task Panel / Notification Drawer workflow states
+  const [apps, setApps] = useState<Application[]>([]);
+  const [filterType, setFilterType] = useState<string>('All');
+  const [filterStage, setFilterStage] = useState<string>('All');
+  const [filterPriority, setFilterPriority] = useState<string>('All');
 
   // Password fields
   const [currentPassword, setCurrentPassword] = useState('');
@@ -63,6 +71,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         const notifs = await notificationService.getNotifications();
         setNotifications(notifs);
         setUnreadCount(notifs.filter(n => !n.isRead).length);
+
+        if (user.role === 'Admin') {
+          const fetchedApps = await applicationService.getApplications();
+          setApps(fetchedApps);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -128,7 +141,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const customerLinks = [
     { name: 'Dashboard', path: '/customer', icon: Home },
     { name: 'New Application', path: '/customer/apply', icon: PlusCircle },
-    { name: 'My Applications', path: '/customer/track', icon: FileText },
+    { name: 'Water Tanker', path: '/water-tanker', icon: Truck },
+    { name: 'My Applications', path: '/customer/applications?tab=submitted', icon: FileText },
+    { name: 'Draft Applications', path: '/customer/applications?tab=drafts', icon: FileText },
     { name: 'Track Application', path: '/customer/track', icon: Clipboard },
     { name: 'Notifications', path: '#notifications', icon: Bell, isAction: true },
     { name: 'Profile', path: '/customer/profile', icon: UserIcon },
@@ -137,21 +152,181 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   const adminLinks = [
-    { name: 'Dashboard', path: '/admin', icon: Home },
-    { name: 'Applications', path: '/admin/applications', icon: FileText },
-    { name: 'Pending Approvals', path: '/admin/applications?status=pending', icon: Clock },
-    { name: 'Approved Applications', path: '/admin/applications?status=approved', icon: CheckCircle },
-    { name: 'Rejected Applications', path: '/admin/applications?status=rejected', icon: XCircle },
-    { name: 'Customers', path: '/admin/customers', icon: Users },
-    { name: 'Reports', path: '/admin', icon: BarChart3 },
-    { name: 'Settings', path: '/admin/settings', icon: Settings },
-    { name: 'User Management', path: '/admin/customers', icon: UserPlus },
-    { name: 'Notifications', path: '#notifications', icon: Bell, isAction: true },
-    { name: 'Audit Logs', path: '/admin/logs', icon: Shield },
-    { name: 'Logout', path: '#logout', icon: LogOut, isAction: true }
+    { name: 'Dashboard', path: '/admin', icon: Home, hasChevron: false },
+    { 
+      name: 'New Connection', 
+      path: '/admin/applications', 
+      icon: PlusCircle, 
+      hasChevron: true,
+      subItems: [
+        'Provisional Connection',
+        'Permanent LT Connection',
+        'Permanent HT Connection',
+        'Temporary Connection',
+        'New Water Connection',
+        'WPC Order Instruction',
+        'WPC NewRequest'
+      ]
+    },
+    { 
+      name: 'Connection Request', 
+      path: '/admin/applications', 
+      icon: FileText, 
+      hasChevron: true,
+      subItems: [
+        'Separate Connection'
+      ]
+    },
+    { 
+      name: 'Approval Setting', 
+      path: '/admin/settings', 
+      icon: Settings, 
+      hasChevron: true,
+      subItems: [
+        'Route Master'
+      ]
+    },
+    { 
+      name: 'Change Management', 
+      path: '/admin/applications', 
+      icon: RefreshCw, 
+      hasChevron: true,
+      subItems: [
+        'Load Enhancement Request',
+        'Load Reduction Request',
+        'Consumer Name Change Request',
+        'Ownership Transfer Legal Heir Request',
+        'Change of Consumer Category / Shifting of Premises / Shifting of Meter and Switch Requests'
+      ]
+    },
+    { name: 'Water Tanker', path: '/water-tanker', icon: Truck, hasChevron: false },
+    { name: 'Permanent Disconnection', path: '/admin/applications?type=Permanent%20Disconnection', icon: X, hasChevron: false },
+    { name: 'Energy Meter Testing', path: '/admin/applications?type=Energy%20Meter%20Testing', icon: FileText, hasChevron: false },
+    { name: 'Application Verification', path: '/admin/applications?stage=Application%20Verification', icon: CheckCircle, hasChevron: false },
+    { 
+      name: 'Survey', 
+      path: '/admin/applications', 
+      icon: Clipboard, 
+      hasChevron: true,
+      subItems: [
+        'Pending Survey Details',
+        'Pending Survey Approval',
+        'Pending Land Survey Details'
+      ]
+    },
+    { 
+      name: 'Estimate', 
+      path: '/admin/applications', 
+      icon: FileText, 
+      hasChevron: true,
+      subItems: [
+        'Pending Estimate Details',
+        'Pending Estimate Approval',
+        'Survey & Estimate'
+      ]
+    },
+    { 
+      name: 'Demand Note', 
+      path: '/admin/applications', 
+      icon: FileText, 
+      hasChevron: true,
+      subItems: [
+        'Pending Demand Note Create',
+        'Pending Demand Note Collection',
+        'Bill Verification',
+        'Settlement'
+      ]
+    },
+    { 
+      name: 'Department (Internal Uses)', 
+      path: '/admin/applications', 
+      icon: Users, 
+      hasChevron: true,
+      subItems: [
+        {
+          name: 'Request Generation',
+          hasChevron: true,
+          subItems: [
+            'Bill/Invoice Reversal',
+            'Debit / Credit Management',
+            'UUE/ Theft'
+          ]
+        },
+        {
+          name: 'UUE Process',
+          hasChevron: true,
+          subItems: [
+            'Notice for Meter Testing',
+            'Show Cause Notice',
+            'Consumer Response',
+            'Assessment & Speking Order',
+            'Assessment & Speking Order'
+          ]
+        },
+        {
+          name: 'Pending Approval',
+          hasChevron: true,
+          subItems: [
+            '1st Level',
+            'Final Level'
+          ]
+        },
+        'Execution And Closure'
+      ]
+    },
+    { 
+      name: 'Execution', 
+      path: '/admin/applications', 
+      icon: Play, 
+      hasChevron: true,
+      subItems: [
+        'Job Allotment',
+        'RFC TR Details',
+        'Energizations',
+        'Move In',
+        'Dismantling',
+        'Move Out',
+        'Feedback Form'
+      ]
+    },
+    { name: 'Service Approval', path: '/admin/applications?stage=Load%20Survey%20Approval', icon: CheckCircle, hasChevron: false },
+    { 
+      name: 'Miscellaneous', 
+      path: '/admin/applications', 
+      icon: BarChart3, 
+      hasChevron: true,
+      subItems: [
+        'Re Route Applications',
+        'Water Tanker',
+        'PrintApplicationForSurvey',
+        'Money Receipt',
+        'PrintApplicationForEstimate'
+      ]
+    },
+    { 
+      name: 'Report', 
+      path: '/admin?tab=reports', 
+      icon: BarChart3, 
+      hasChevron: true,
+      subItems: [
+        'Consolidated Reports',
+        'Activity Log'
+      ]
+    },
+    { 
+      name: 'Exception Application', 
+      path: '/admin/applications', 
+      icon: AlertCircle, 
+      hasChevron: true,
+      subItems: [
+        'Regretted Applications',
+        'Hold Applications',
+        'Archived Application'
+      ]
+    },
   ];
 
-  const menuLinks = currentUser.role === 'Admin' ? adminLinks : customerLinks;
+
 
   return (
     <div className={`min-h-screen flex transition-colors duration-200 ${darkMode ? 'dark bg-slate-900 text-gray-100' : 'bg-gray-50 text-gray-800'}`}>
@@ -213,53 +388,196 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Navigation Items Links */}
         <nav className="flex-1 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
-          {menuLinks.map((link) => {
-            const Icon = link.icon;
-            
-            // Highlight check
-            const isActive = !link.isAction && (
-              link.path.includes('?') 
-                ? (location.pathname + location.search === link.path)
-                : (location.pathname === link.path && !location.search)
-            );
-            
-            const handleClick = (e: React.MouseEvent) => {
-              if (link.isAction) {
-                e.preventDefault();
-                if (link.path === '#notifications') {
-                  setNotifDrawerOpen(true);
-                } else if (link.path === '#help') {
-                  setHelpModalOpen(true);
-                } else if (link.path === '#logout') {
-                  handleLogout();
-                }
-              } else if (window.innerWidth < 1024) {
-                setSidebarOpen(false); // Auto close mobile drawer
-              }
-            };
+          {currentUser.role !== 'Admin' ? (
+            customerLinks.map((link) => {
+              const Icon = link.icon;
+              const isActive = !link.isAction && (
+                link.path.includes('?') 
+                  ? location.pathname === link.path.split('?')[0] && location.search === '?' + link.path.split('?')[1]
+                  : location.pathname === link.path
+              );
+              return (
+                <Link
+                  key={link.name + link.path}
+                  to={link.isAction ? '#' : link.path}
+                  onClick={(e) => {
+                    if (link.isAction) {
+                      e.preventDefault();
+                      if (link.path === '#notifications') setNotifDrawerOpen(true);
+                      else if (link.path === '#help') setHelpModalOpen(true);
+                      else if (link.path === '#logout') handleLogout();
+                    }
+                  }}
+                  className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 group relative ${
+                    sidebarOpen ? 'px-3 py-2.5 mx-2' : 'p-3 justify-center mx-1.5'
+                  } ${isActive ? 'bg-white/15 text-white border-l-4 border-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
+                >
+                  <Icon size={18} className={`${sidebarOpen ? 'mr-3' : ''} flex-shrink-0`} />
+                  {sidebarOpen && <span className="truncate text-xs font-semibold">{link.name}</span>}
+                </Link>
+              );
+            })
+          ) : (
+            <>
+              {adminLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = (
+                  link.path.includes('?') 
+                    ? location.pathname === link.path.split('?')[0] && location.search === '?' + link.path.split('?')[1]
+                    : location.pathname === link.path
+                );
+                
+                if (link.subItems) {
+                  const isMenuExpanded = !!expandedMenus[link.name];
+                  const isActive = (
+                    link.path !== '/admin/applications' 
+                      ? location.pathname.startsWith(link.path)
+                      : (
+                          location.pathname === '/admin/applications' && (
+                            location.search.toLowerCase().includes(link.name.toLowerCase().split(' ')[0]) ||
+                            link.subItems.some((sub: any) => {
+                              const subName = typeof sub === 'string' ? sub : sub.name;
+                              const searchStr = location.search.toLowerCase();
+                              return searchStr.includes(encodeURIComponent(subName).toLowerCase()) ||
+                                     (searchStr.includes('type=') && searchStr.includes(subName.toLowerCase().split(' ')[0]));
+                            })
+                          )
+                        )
+                  );
+                  return (
+                    <div key={link.name} className="space-y-1">
+                      <button
+                        onClick={() => {
+                          if (sidebarOpen) {
+                            setExpandedMenus(prev => ({ ...prev, [link.name]: !prev[link.name] }));
+                          } else {
+                            setSidebarOpen(true);
+                            setExpandedMenus(prev => ({ ...prev, [link.name]: true }));
+                          }
+                        }}
+                        className={`w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 group text-left ${
+                          sidebarOpen ? 'px-3 py-2.5 mx-2 w-[calc(100%-1rem)]' : 'p-3 justify-center mx-1.5'
+                        } ${isActive ? 'bg-white/15 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
+                      >
+                        <Icon size={18} className={`${sidebarOpen ? 'mr-3' : ''} flex-shrink-0`} />
+                        {sidebarOpen && (
+                          <>
+                            <span className="truncate text-xs font-semibold">{link.name}</span>
+                            <ChevronDown size={14} className={`ml-auto transform transition-transform duration-200 ${isMenuExpanded ? 'rotate-180' : ''}`} />
+                          </>
+                        )}
+                      </button>
 
-            return (
+                      {sidebarOpen && isMenuExpanded && (
+                        <div className="mx-2 mt-1 p-3 bg-[#E6F0FA] rounded-xl border border-blue-200 shadow-md text-left text-xs space-y-2 animate-fadeIn">
+                          {link.subItems.map((sub: any) => {
+                            if (typeof sub === 'string') {
+                              return (
+                                <Link
+                                  key={sub}
+                                  to={sub === 'Water Tanker' ? '/water-tanker' : `${link.path}?type=${encodeURIComponent(sub)}`}
+                                  className="flex items-center space-x-2 py-1.5 px-2 hover:bg-[#005BAC]/10 rounded transition text-slate-700 hover:text-[#005BAC] font-semibold"
+                                >
+                                  <span className="text-[#005BAC]/60 font-bold">•</span>
+                                  <span>{sub}</span>
+                                </Link>
+                              );
+                            } else {
+                              const isSubExpanded = !!expandedMenus[sub.name];
+                              return (
+                                <div key={sub.name} className="space-y-1">
+                                  <button
+                                    onClick={() => {
+                                      setExpandedMenus(prev => ({ ...prev, [sub.name]: !prev[sub.name] }));
+                                    }}
+                                    className="w-full flex items-center justify-between py-1.5 px-2 hover:bg-[#005BAC]/10 rounded text-slate-700 hover:text-[#005BAC] font-semibold transition"
+                                  >
+                                    <span className="flex items-center space-x-2">
+                                      <span className="text-[#005BAC]/60 font-bold">•</span>
+                                      <span>{sub.name}</span>
+                                    </span>
+                                    <ChevronRight size={12} className={`transform transition-transform duration-200 text-[#005BAC]/70 ${isSubExpanded ? 'rotate-90' : ''}`} />
+                                  </button>
+
+                                  {isSubExpanded && (
+                                    <div className="pl-6 space-y-1.5 border-l border-[#005BAC]/20 ml-4 py-1">
+                                      {sub.subItems.map((grand: string, gidx: number) => (
+                                        <Link
+                                          key={grand + '-' + gidx}
+                                          to={`${link.path}?type=${encodeURIComponent(grand)}`}
+                                          className="flex items-center space-x-2 py-1 px-2 hover:bg-[#005BAC]/5 rounded transition text-slate-600 hover:text-[#005BAC] font-medium"
+                                        >
+                                          <span className="text-[#005BAC]/40">•</span>
+                                          <span>{grand}</span>
+                                        </Link>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={link.name + link.path}
+                    to={link.path}
+                    className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 group relative ${
+                      sidebarOpen ? 'px-3 py-2.5 mx-2' : 'p-3 justify-center mx-1.5'
+                    } ${isActive ? 'bg-white/15 text-white border-l-4 border-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
+                  >
+                    <Icon size={18} className={`${sidebarOpen ? 'mr-3' : ''} flex-shrink-0`} />
+                    {sidebarOpen && (
+                      <>
+                        <span className="truncate text-xs font-semibold">{link.name}</span>
+                        {link.hasChevron && (
+                          <ChevronRight size={14} className="ml-auto opacity-70" />
+                        )}
+                      </>
+                    )}
+                  </Link>
+                );
+              })}
+
+              {/* Extra Admin Options */}
+              {currentUser.officerRole === 'SuperAdmin' && (
+                <Link
+                  to="/admin?tab=officers"
+                  className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 group relative ${
+                    sidebarOpen ? 'px-3 py-2.5 mx-2' : 'p-3 justify-center mx-1.5'
+                  } ${location.search.includes('tab=officers') ? 'bg-white/15 text-white border-l-4 border-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
+                >
+                  <Users size={18} className={`${sidebarOpen ? 'mr-3' : ''} flex-shrink-0`} />
+                  {sidebarOpen && <span className="truncate text-xs font-semibold">Officers</span>}
+                </Link>
+              )}
+
+              <button
+                onClick={() => setNotifDrawerOpen(true)}
+                className={`w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 group text-left ${
+                  sidebarOpen ? 'px-3 py-2.5 mx-2' : 'p-3 justify-center mx-1.5'
+                } text-white/80 hover:bg-white/10 hover:text-white`}
+              >
+                <Bell size={18} className={`${sidebarOpen ? 'mr-3' : ''} flex-shrink-0`} />
+                {sidebarOpen && <span className="truncate text-xs font-semibold">Notifications</span>}
+              </button>
+
               <Link
-                key={link.name + link.path}
-                to={link.isAction ? '#' : link.path}
-                onClick={handleClick}
-                title={!sidebarOpen ? link.name : undefined}
+                to="/admin/logs"
                 className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 group relative ${
                   sidebarOpen ? 'px-3 py-2.5 mx-2' : 'p-3 justify-center mx-1.5'
-                } ${
-                  isActive 
-                    ? 'bg-white/15 text-white border-l-4 border-white' 
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }`}
+                } ${location.pathname === '/admin/logs' ? 'bg-white/15 text-white border-l-4 border-white' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
               >
-                <Icon size={18} className={`${sidebarOpen ? 'mr-3' : ''} transition-transform duration-200 group-hover:scale-110 flex-shrink-0`} />
-                {sidebarOpen && (
-                  <span className="truncate text-xs font-semibold">{link.name}</span>
-                )}
-                {sidebarOpen && isActive && <ChevronRight size={14} className="ml-auto text-white" />}
+                <Shield size={18} className={`${sidebarOpen ? 'mr-3' : ''} flex-shrink-0`} />
+                {sidebarOpen && <span className="truncate text-xs font-semibold">Audit Logs</span>}
               </Link>
-            );
-          })}
+            </>
+          )}
         </nav>
 
         {/* Persistent Bottom Logout */}
@@ -439,18 +757,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* NOTIFICATIONS DRAWER FEED */}
-      {notifDrawerOpen && (
+      {notifDrawerOpen && currentUser && (
         <>
           <div 
             className="fixed inset-0 bg-black/55 z-40 transition-opacity duration-300"
             onClick={() => setNotifDrawerOpen(false)}
           />
-          <div className="fixed inset-y-0 right-0 max-w-sm w-full bg-white dark:bg-slate-800 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out border-l border-gray-200 dark:border-slate-700 text-left">
+          <div className="fixed inset-y-0 right-0 max-w-md w-full bg-white dark:bg-slate-800 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out border-l border-gray-200 dark:border-slate-700 text-left">
             
             <div className="px-5 py-4 bg-[#005BAC] text-white flex justify-between items-center flex-shrink-0">
               <div className="flex items-center space-x-2">
                 <Bell size={18} />
-                <span className="font-bold text-sm">Notifications Drawer</span>
+                <span className="font-bold text-sm">
+                  {currentUser.role === 'Admin' ? 'Tasks & Alerts Center' : 'Notifications Feed'}
+                </span>
               </div>
               <button 
                 onClick={() => setNotifDrawerOpen(false)}
@@ -459,57 +779,250 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <X size={18} />
               </button>
             </div>
-            
-            <div className="p-3 bg-gray-50 dark:bg-slate-700/30 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center text-xs flex-shrink-0">
-              <span className="font-semibold text-gray-500 dark:text-gray-400">Connection Feeds</span>
-              <span className="bg-blue-50 text-tata-blue dark:bg-slate-700 dark:text-tata-blue-light px-2.5 py-0.5 rounded-full font-bold text-[10px]">
-                {unreadCount} Unread
-              </span>
-            </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-gray-450 space-y-2">
-                  <Bell size={24} className="text-gray-300 dark:text-slate-600" />
-                  <p>All clean! No notification feeds found.</p>
-                </div>
-              ) : (
-                notifications.map((notif) => (
-                  <div 
-                    key={notif.id} 
-                    onClick={() => handleMarkAsRead(notif.id)}
-                    className={`p-3.5 border border-gray-150 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/40 cursor-pointer flex flex-col transition duration-200 ${!notif.isRead ? 'bg-blue-50/50 dark:bg-blue-950/10 border-l-4 border-l-tata-blue dark:border-l-tata-blue-light' : ''}`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <span className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-snug">{notif.title}</span>
-                      {!notif.isRead && <span className="h-1.5 w-1.5 bg-[#005BAC] rounded-full mt-1.5 flex-shrink-0"></span>}
-                    </div>
-                    <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{notif.message}</span>
-                    <span className="text-[9px] text-gray-400 mt-2 font-mono flex items-center">
-                      <Clock size={10} className="mr-1" />
-                      {new Date(notif.createdAt).toLocaleDateString()} {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {currentUser.role === 'Admin' ? (
+              <>
+                {/* Advanced Task Filters */}
+                <div className="p-4 bg-gray-50 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-700 space-y-2.5 flex-shrink-0 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-700 dark:text-gray-300">Filter Tasks</span>
+                    <span className="bg-blue-100 text-tata-blue dark:bg-slate-700 dark:text-tata-blue-light px-2.5 py-0.5 rounded-full font-bold text-[10px]">
+                      {apps.filter(a => a.currentStatus && a.currentStatus.startsWith('Pending')).length} Pending Tasks
                     </span>
                   </div>
-                ))
-              )}
-            </div>
-            
-            <div className="p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 flex-shrink-0">
-              <button 
-                onClick={async () => {
-                  try {
-                    for (const n of notifications.filter(notif => !notif.isRead)) {
-                      await notificationService.markAsRead(n.id);
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-gray-400 font-bold mb-1">DUE FILTER</label>
+                      <select 
+                        value={filterType} 
+                        onChange={(e) => setFilterType(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded px-1.5 py-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 outline-none"
+                      >
+                        <option value="All">All Tasks</option>
+                        <option value="My Tasks">My Tasks</option>
+                        <option value="Pending">Pending Only</option>
+                        <option value="Overdue">Overdue</option>
+                        <option value="Due Today">Due Today</option>
+                        <option value="Due This Week">Due This Week</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-gray-400 font-bold mb-1">STAGE</label>
+                      <select 
+                        value={filterStage} 
+                        onChange={(e) => setFilterStage(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded px-1.5 py-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 outline-none"
+                      >
+                        <option value="All">All Stages</option>
+                        {[
+                          'Application Verification', 'Document Verification', 'Load Survey', 'Land Survey',
+                          'Bill Verification', 'Estimate Details', 'Estimate Approval', 'Demand Note',
+                          'Connection Approval', 'Job Allotment', 'RFC Entry', 'Energization', 'Move-In', 'Completed'
+                        ].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-gray-400 font-bold mb-1">PRIORITY</label>
+                      <select 
+                        value={filterPriority} 
+                        onChange={(e) => setFilterPriority(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded px-1.5 py-1 text-[11px] font-semibold text-gray-700 dark:text-gray-200 outline-none"
+                      >
+                        <option value="All">All Priorities</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Task List */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {(() => {
+                    const tasksList = apps.filter(app => {
+                      if (!app.currentStatus || !app.currentStatus.startsWith('Pending')) return false;
+                      
+                      // Due type filter
+                      if (filterType === 'My Tasks') {
+                        const isMine = app.assignedOfficer.toLowerCase().includes(currentUser.fullName.toLowerCase()) ||
+                                       app.assignedOfficer.toLowerCase().includes(currentUser.officerRole?.toLowerCase() || '');
+                        if (!isMine) return false;
+                      } else if (filterType === 'Overdue') {
+                        if (!app.dueDate || new Date(app.dueDate) >= new Date()) return false;
+                      } else if (filterType === 'Due Today') {
+                        if (!app.dueDate) return false;
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        if (app.dueDate.split('T')[0] !== todayStr) return false;
+                      } else if (filterType === 'Due This Week') {
+                        if (!app.dueDate) return false;
+                        const diffTime = new Date(app.dueDate).getTime() - new Date().getTime();
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays < 0 || diffDays > 7) return false;
+                      }
+
+                      // Stage check
+                      if (filterStage !== 'All' && app.currentStage !== filterStage) return false;
+
+                      // Priority check
+                      if (filterPriority !== 'All' && app.priority !== filterPriority) return false;
+
+                      return true;
+                    });
+
+                    if (tasksList.length === 0) {
+                      return (
+                        <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-gray-400 space-y-2">
+                          <Bell size={24} className="text-gray-300 dark:text-slate-600 animate-pulse" />
+                          <p>No workflow tasks match your filters.</p>
+                        </div>
+                      );
                     }
-                    fetchNotifications();
-                    toast.success('All marked as read');
-                  } catch(e) {}
-                }}
-                className="w-full py-2 bg-[#005BAC] hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow"
-              >
-                Mark All as Read
-              </button>
-            </div>
+
+                    return tasksList.map(app => {
+                      let actionText = 'Perform stage verification review.';
+                      if (app.currentStage === 'Application Verification') actionText = 'Verify customer connection registration details.';
+                      else if (app.currentStage === 'Document Verification') actionText = 'Verify uploaded Aadhaar, PAN card and property deeds.';
+                      else if (app.currentStage === 'Load Survey') actionText = 'Perform load survey and property inspection.';
+                      else if (app.currentStage === 'Land Survey') actionText = 'Complete site coordinate verification.';
+                      else if (app.currentStage === 'Bill Verification') actionText = 'Verify last paid utility invoice copies.';
+                      else if (app.currentStage === 'Estimate Details') actionText = 'Prepare and verify load calculation estimation sheets.';
+                      else if (app.currentStage === 'Estimate Approval') actionText = 'Provide final technical approval for estimate cost sheets.';
+                      else if (app.currentStage === 'Demand Note') actionText = 'Verify demand note generation and payment receipts.';
+                      else if (app.currentStage === 'Connection Approval') actionText = 'Validate final connection registration form.';
+                      else if (app.currentStage === 'Job Allotment') actionText = 'Assign work job cards to connection field engineers.';
+                      else if (app.currentStage === 'RFC Entry') actionText = 'Enter Ready For Connection details in central ledger.';
+                      else if (app.currentStage === 'Energization') actionText = 'Perform meter mounting and initial test charging.';
+                      else if (app.currentStage === 'Move-In') actionText = 'Record move-in reading and initialize customer contract.';
+
+                      const isOverdue = app.dueDate && new Date(app.dueDate) < new Date();
+
+                      return (
+                        <div 
+                          key={app.id}
+                          className={`p-3.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50/50 dark:bg-slate-800/50 shadow-sm flex flex-col space-y-2 hover:border-[#005BAC] dark:hover:border-tata-blue-light transition`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <span className="text-[11px] font-extrabold text-[#005BAC] dark:text-tata-blue-light font-mono">
+                              {app.applicationNumber}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                              app.priority === 'High' ? 'bg-red-50 text-red-600 dark:bg-red-950/20' : 
+                              app.priority === 'Medium' ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-950/20' : 
+                              'bg-green-50 text-green-600 dark:bg-green-950/20'
+                            }`}>
+                              {app.priority}
+                            </span>
+                          </div>
+
+                          <div className="text-xs text-gray-700 dark:text-gray-200 leading-snug space-y-1">
+                            <p><span className="font-bold text-gray-400">Customer:</span> {app.fullName || app.customerName}</p>
+                            <p><span className="font-bold text-gray-400">Stage:</span> <span className="font-semibold text-tata-blue dark:text-tata-blue-light">{app.currentStage}</span></p>
+                            <p><span className="font-bold text-gray-400 font-semibold text-gray-800 dark:text-gray-100">Action:</span> {actionText}</p>
+                            <p><span className="font-bold text-gray-400">Assigned:</span> <span className="italic text-gray-600 dark:text-gray-300">{app.assignedOfficer}</span></p>
+                            {app.dueDate && (
+                              <p className="flex items-center text-[10px] mt-1 font-semibold">
+                                <Clock size={10} className="mr-1 text-gray-400" />
+                                <span className={isOverdue ? 'text-red-500' : 'text-gray-500'}>
+                                  Due: {new Date(app.dueDate).toLocaleDateString()} {isOverdue && '(Overdue)'}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Quick Action Buttons */}
+                          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-150 dark:border-slate-700">
+                            <button
+                              onClick={() => {
+                                setNotifDrawerOpen(false);
+                                navigate(`/admin/applications?id=${app.id}`);
+                              }}
+                              className="py-1 bg-white hover:bg-gray-100 dark:bg-slate-700 text-[#005BAC] dark:text-tata-blue-light border border-gray-200 dark:border-slate-600 rounded text-[10px] font-extrabold text-center transition"
+                            >
+                              Open Detail
+                            </button>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await applicationService.updateStage(app.id, {
+                                    newStage: app.currentStage,
+                                    action: 'Approve',
+                                    remarks: 'Quick approved from Tasks Drawer.'
+                                  });
+                                  toast.success(`Approved to next stage.`);
+                                  fetchNotifications();
+                                } catch (e) {
+                                  toast.error('Quick action failed.');
+                                }
+                              }}
+                              className="py-1 bg-[#005BAC] hover:bg-blue-700 text-white rounded text-[10px] font-extrabold text-center transition"
+                            >
+                              Fast Approve
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3 bg-gray-50 dark:bg-slate-700/30 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center text-xs flex-shrink-0">
+                  <span className="font-semibold text-gray-500 dark:text-gray-400">Connection Feeds</span>
+                  <span className="bg-blue-50 text-tata-blue dark:bg-slate-700 dark:text-tata-blue-light px-2.5 py-0.5 rounded-full font-bold text-[10px]">
+                    {unreadCount} Unread
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-gray-450 space-y-2">
+                      <Bell size={24} className="text-gray-300 dark:text-slate-600" />
+                      <p>All clean! No notification feeds found.</p>
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div 
+                        key={notif.id} 
+                        onClick={() => handleMarkAsRead(notif.id)}
+                        className={`p-3.5 border border-gray-150 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/40 cursor-pointer flex flex-col transition duration-200 ${!notif.isRead ? 'bg-blue-50/50 dark:bg-blue-950/10 border-l-4 border-l-tata-blue dark:border-l-tata-blue-light' : ''}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <span className="text-xs font-bold text-gray-800 dark:text-gray-200 leading-snug">{notif.title}</span>
+                          {!notif.isRead && <span className="h-1.5 w-1.5 bg-[#005BAC] rounded-full mt-1.5 flex-shrink-0"></span>}
+                        </div>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{notif.message}</span>
+                        <span className="text-[9px] text-gray-400 mt-2 font-mono flex items-center">
+                          <Clock size={10} className="mr-1" />
+                          {new Date(notif.createdAt).toLocaleDateString()} {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+                <div className="p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 flex-shrink-0">
+                  <button 
+                    onClick={async () => {
+                      try {
+                        for (const n of notifications.filter(notif => !notif.isRead)) {
+                          await notificationService.markAsRead(n.id);
+                        }
+                        fetchNotifications();
+                        toast.success('All marked as read');
+                      } catch(e) {}
+                    }}
+                    className="w-full py-2 bg-[#005BAC] hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow"
+                  >
+                    Mark All as Read
+                  </button>
+                </div>
+              </>
+            )}
 
           </div>
         </>

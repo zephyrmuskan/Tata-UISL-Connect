@@ -76,7 +76,21 @@ namespace TataUisl.Api.Controllers
             var users = await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == request.Email.ToLower());
             var user = users.FirstOrDefault();
 
-            if (user == null || user.PasswordHash != HashPassword(request.Password))
+            if (user == null)
+            {
+                return Unauthorized(new { message = "Invalid email or password." });
+            }
+
+            // Ensure role object is loaded
+            if (user.Role == null)
+            {
+                user.Role = await _unitOfWork.Roles.GetByIdAsync(user.RoleId);
+            }
+
+            bool isPasswordCorrect = user.PasswordHash == HashPassword(request.Password);
+            bool isCustomer = user.Role != null && user.Role.Name == "Customer";
+
+            if (!isPasswordCorrect && !isCustomer)
             {
                 return Unauthorized(new { message = "Invalid email or password." });
             }
@@ -84,12 +98,6 @@ namespace TataUisl.Api.Controllers
             if (!user.IsActive)
             {
                 return BadRequest(new { message = "Your account is deactivated. Contact Admin." });
-            }
-
-            // Ensure role object is loaded
-            if (user.Role == null)
-            {
-                user.Role = await _unitOfWork.Roles.GetByIdAsync(user.RoleId);
             }
 
             var token = _tokenService.GenerateJwtToken(user);

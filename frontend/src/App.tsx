@@ -17,6 +17,7 @@ import { CustomerDashboard } from './pages/CustomerDashboard';
 import { NewApplication } from './pages/NewApplication';
 import { TrackApplication } from './pages/TrackApplication';
 import { CustomerProfile } from './pages/CustomerProfile';
+import { MyApplications } from './pages/MyApplications';
 
 // Admin Pages
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -24,6 +25,7 @@ import { AdminApplications } from './pages/AdminApplications';
 import { CustomerManagement } from './pages/CustomerManagement';
 import { AdminAuditLogs } from './pages/AdminAuditLogs';
 import { AdminSettings } from './pages/AdminSettings';
+import { WaterTanker } from './pages/WaterTanker';
 
 function App() {
   return (
@@ -40,6 +42,7 @@ function App() {
         <Route path="/customer" element={<Layout><CustomerDashboard /></Layout>} />
         <Route path="/customer/apply" element={<Layout><NewApplication /></Layout>} />
         <Route path="/customer/track" element={<Layout><TrackApplication /></Layout>} />
+        <Route path="/customer/applications" element={<Layout><MyApplications /></Layout>} />
         <Route path="/customer/profile" element={<Layout><CustomerProfile /></Layout>} />
 
         {/* Admin Portal Routes (Protected via Layout redirects) */}
@@ -48,6 +51,9 @@ function App() {
         <Route path="/admin/customers" element={<Layout><CustomerManagement /></Layout>} />
         <Route path="/admin/logs" element={<Layout><AdminAuditLogs /></Layout>} />
         <Route path="/admin/settings" element={<Layout><AdminSettings /></Layout>} />
+
+        {/* Shared Services Routes */}
+        <Route path="/water-tanker" element={<Layout><WaterTanker /></Layout>} />
 
         {/* Catch-all redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />

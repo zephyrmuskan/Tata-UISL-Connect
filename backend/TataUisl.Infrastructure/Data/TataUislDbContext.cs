@@ -19,6 +19,10 @@ namespace TataUisl.Infrastructure.Data
         public DbSet<ConnectionType> ConnectionTypes { get; set; } = null!;
         public DbSet<ApplicationRemark> ApplicationRemarks { get; set; } = null!;
         public DbSet<Setting> Settings { get; set; } = null!;
+        public DbSet<WorkflowRoute> WorkflowRoutes { get; set; } = null!;
+        public DbSet<WorkflowStage> WorkflowStages { get; set; } = null!;
+        public DbSet<OfficerAssignment> OfficerAssignments { get; set; } = null!;
+        public DbSet<ApplicationWorkflow> ApplicationWorkflows { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -33,6 +37,7 @@ namespace TataUisl.Infrastructure.Data
                 entity.Property(e => e.FullName).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.PasswordHash).HasMaxLength(255).IsRequired();
                 entity.Property(e => e.MobileNumber).HasMaxLength(20);
+                entity.Property(e => e.OfficerRole).HasMaxLength(50).IsRequired().HasDefaultValue("Customer");
 
                 entity.HasOne(d => d.Role)
                     .WithMany(p => p.Users)
@@ -61,25 +66,48 @@ namespace TataUisl.Infrastructure.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.ApplicationNumber).IsUnique();
                 entity.Property(e => e.ApplicationNumber).HasMaxLength(50).IsRequired();
-                entity.Property(e => e.FullName).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.FullName).HasMaxLength(100).IsRequired(false);
                 entity.Property(e => e.FatherName).HasMaxLength(100);
                 entity.Property(e => e.MotherName).HasMaxLength(100);
                 entity.Property(e => e.Gender).HasMaxLength(10);
-                entity.Property(e => e.AadhaarNumber).HasMaxLength(12).IsRequired();
-                entity.Property(e => e.PanNumber).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.AadhaarNumber).HasMaxLength(12).IsRequired(false);
+                entity.Property(e => e.PanNumber).HasMaxLength(10).IsRequired(false);
                 entity.Property(e => e.AnnualIncome).HasPrecision(18, 2);
-                entity.Property(e => e.AddressLine1).HasMaxLength(255).IsRequired();
+
+                entity.Property(e => e.CreateNewBp).IsRequired();
+                entity.Property(e => e.ExistingBpNo).HasMaxLength(50);
+                entity.Property(e => e.BusinessArea).HasMaxLength(100).IsRequired(false);
+                entity.Property(e => e.OwnerOrgName).HasMaxLength(100).IsRequired(false);
+                entity.Property(e => e.RelationshipType).HasMaxLength(50).IsRequired(false);
+                entity.Property(e => e.RelationshipName).HasMaxLength(100).IsRequired(false);
+                entity.Property(e => e.IdentityCardType).HasMaxLength(50).IsRequired(false);
+                entity.Property(e => e.IdentityCardNumber).HasMaxLength(100).IsRequired(false);
+                entity.Property(e => e.PhoneNumber).HasMaxLength(20).IsRequired(false);
+                entity.Property(e => e.AlternatePhoneNumber).HasMaxLength(20);
+                entity.Property(e => e.EmailId).HasMaxLength(100).IsRequired(false);
+                entity.Property(e => e.AlternateEmailId).HasMaxLength(100);
+                entity.Property(e => e.VendorName).HasMaxLength(100);
+                entity.Property(e => e.VendorCertificateNumber).HasMaxLength(100);
+                entity.Property(e => e.AddressLine1).HasMaxLength(255).IsRequired(false);
                 entity.Property(e => e.AddressLine2).HasMaxLength(255);
                 entity.Property(e => e.City).HasMaxLength(100);
                 entity.Property(e => e.State).HasMaxLength(100);
                 entity.Property(e => e.District).HasMaxLength(100);
-                entity.Property(e => e.PinCode).HasMaxLength(6).IsRequired();
+                entity.Property(e => e.PinCode).HasMaxLength(6).IsRequired(false);
                 entity.Property(e => e.PropertyType).HasMaxLength(50);
                 entity.Property(e => e.HouseNumber).HasMaxLength(50);
                 entity.Property(e => e.WardNumber).HasMaxLength(50);
                 entity.Property(e => e.Area).HasMaxLength(100);
                 entity.Property(e => e.Landmark).HasMaxLength(100);
+                entity.Property(e => e.VoltageRequirement).HasMaxLength(50);
+                entity.Property(e => e.LoadRequirement).HasMaxLength(50);
+                entity.Property(e => e.PurposeOfConnection).HasMaxLength(100);
+                entity.Property(e => e.OwnershipType).HasMaxLength(50);
+                entity.Property(e => e.PlotNumber).HasMaxLength(100);
+                entity.Property(e => e.SurveyNumber).HasMaxLength(100);
                 entity.Property(e => e.CurrentStatus).HasMaxLength(50);
+                entity.Property(e => e.CurrentStage).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.Priority).HasMaxLength(50).IsRequired();
                 entity.Property(e => e.AssignedOfficer).HasMaxLength(100);
 
                 entity.HasOne(d => d.Customer)
@@ -90,7 +118,8 @@ namespace TataUisl.Infrastructure.Data
                 entity.HasOne(d => d.ConnectionType)
                     .WithMany()
                     .HasForeignKey(d => d.ConnectionTypeId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
             });
 
             // Document configuration
@@ -125,6 +154,7 @@ namespace TataUisl.Infrastructure.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Status).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Stage).HasMaxLength(100);
 
                 entity.HasOne(d => d.Application)
                     .WithMany(p => p.StatusHistory)
@@ -171,6 +201,61 @@ namespace TataUisl.Infrastructure.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Key).IsUnique();
                 entity.Property(e => e.Key).HasMaxLength(100).IsRequired();
+            });
+
+            // WorkflowRoute configuration
+            modelBuilder.Entity<WorkflowRoute>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.LevelGroup).HasMaxLength(50).IsRequired();
+            });
+
+            // WorkflowStage configuration
+            modelBuilder.Entity<WorkflowStage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.StageName).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.WorkflowLevel).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Department).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.RequiredAction).HasMaxLength(255).IsRequired();
+
+                entity.HasOne(d => d.Route)
+                    .WithMany(p => p.Stages)
+                    .HasForeignKey(d => d.RouteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // OfficerAssignment configuration
+            modelBuilder.Entity<OfficerAssignment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ApplicationId).IsRequired();
+                entity.Property(e => e.StageName).HasMaxLength(100).IsRequired();
+
+                entity.HasOne(d => d.Officer)
+                    .WithMany()
+                    .HasForeignKey(d => d.OfficerId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ApplicationWorkflow configuration
+            modelBuilder.Entity<ApplicationWorkflow>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ApplicationId).IsRequired();
+                entity.Property(e => e.LevelGroup).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Status).HasMaxLength(50).IsRequired();
+
+                entity.HasOne(d => d.Route)
+                    .WithMany()
+                    .HasForeignKey(d => d.RouteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(d => d.Application)
+                    .WithMany()
+                    .HasForeignKey(d => d.ApplicationId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

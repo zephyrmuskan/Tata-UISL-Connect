@@ -14,6 +14,7 @@ namespace TataUisl.Core.Interfaces
         IRepository<AuditLog> AuditLogs { get; }
         IRepository<ConnectionType> ConnectionTypes { get; }
         IRepository<ApplicationRemark> ApplicationRemarks { get; }
+        IRepository<ApplicationStatus> ApplicationStatuses { get; }
         IRepository<Setting> Settings { get; }
 
         Task<int> CompleteAsync();

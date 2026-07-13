@@ -34,7 +34,7 @@ namespace TataUisl.Api.Controllers
                 Status = a.CurrentStatus,
                 SubmittedDate = a.SubmittedDate,
                 AssignedOfficer = a.AssignedOfficer,
-                Income = a.AnnualIncome
+                Income = a.AnnualIncome ?? 0
             });
 
             return Ok(rows);

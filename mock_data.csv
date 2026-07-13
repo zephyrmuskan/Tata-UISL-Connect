@@ -1,0 +1,101 @@
+#,Appl. No.,Appl. Date,Service Type,Applicant,BP/Consumer No.,Business Area,Address,Phone No,Stage,Pending At,Status,Action
+1,260626020001,20-Apr-2026,Load Change-Reduction,Suresh Yadav,BP900001,JAMSHEDPUR,"House 146, Road 5, SARAIKELA, Jharkhand",8271009132,Job Allotment,Priya (8271039156),Rejected,View
+2,260626020002,27-Apr-2026,Name Change,Priya Singh,BP900002,JAMSHEDPUR,"House 469, Road 9, CHAIBASA, Jharkhand",8271001494,Load Survey,Vibha (8271039157),InProgress,View
+3,260626020003,31-May-2026,Rate Category Change,Anjali Verma,-,JAMSHEDPUR,"House 311, Road 3, ADITYAPUR, Jharkhand",8271005784,Energization,Rahul (8271039155),Rejected,View
+4,260626020004,10-Apr-2026,Meter Relocation,Neha Gupta,-,GHATSHILA,"House 60, Road 17, JAMSHEDPUR, Jharkhand",8271004729,Job Allotment,Abhishek (8271039154),Rejected,View
+5,260626020005,28-May-2026,Load Change-Reduction,Neha Gupta,-,CHAIBASA,"House 265, Road 9, GHATSHILA, Jharkhand",8271004987,Bill Verification,Vibha (8271039157),InProgress,View
+6,260626020006,08-Jun-2026,New Power Connection LT,Vikas Singh,BP900006,GHATSHILA,"House 430, Road 4, JAMSHEDPUR, Jharkhand",8271007216,Estimate Approval,Vibha (8271039157),Completed,View
+7,260626020007,07-Apr-2026,New Power Connection LT,Priya Singh,BP900007,SARAIKELA,"House 360, Road 16, SARAIKELA, Jharkhand",8271001150,Load Survey,Abhishek (8271039154),Completed,View
+8,260626020008,02-Jun-2026,Name Change,Vikas Singh,BP900008,ADITYAPUR,"House 8, Road 6, GHATSHILA, Jharkhand",8271007129,Application Verification,Vibha (8271039157),Completed,View
+9,260626020009,16-Jun-2026,Meter Relocation,Neha Gupta,-,GHATSHILA,"House 318, Road 3, GHATSHILA, Jharkhand",8271009575,Load Survey,Priya (8271039156),Completed,View
+10,260626020010,15-May-2026,Temporary Power Connection,Amit Kumar,BP900010,JAMSHEDPUR,"House 52, Road 8, SARAIKELA, Jharkhand",8271006248,Energization,Vibha (8271039157),InProgress,View
+11,260626020011,20-Jun-2026,Load Change-Reduction,Priya Singh,BP900011,CHAIBASA,"House 205, Road 15, GHATSHILA, Jharkhand",8271008488,Bill Verification,Vibha (8271039157),Pending,View
+12,260626020012,08-Jun-2026,Name Change,Suresh Yadav,BP900012,SARAIKELA,"House 302, Road 13, CHAIBASA, Jharkhand",8271004642,Estimate Approval,Priya (8271039156),InProgress,View
+13,260626020013,05-May-2026,Permanent Disconnection,Rohit Kumar,-,SARAIKELA,"House 466, Road 15, GHATSHILA, Jharkhand",8271004907,Demand Note,Rahul (8271039155),Approved,View
+14,260626020014,15-Apr-2026,New Power Connection HT,Vikas Singh,-,JAMSHEDPUR,"House 258, Road 14, SARAIKELA, Jharkhand",8271009789,Bill Verification,Rahul (8271039155),Rejected,View
+15,260626020015,14-Apr-2026,Load Change-Enhancement,Anjali Verma,-,GHATSHILA,"House 36, Road 13, ADITYAPUR, Jharkhand",8271003673,Estimate Approval,Abhishek (8271039154),InProgress,View
+16,260626020016,12-May-2026,Name Change,Anjali Verma,-,JAMSHEDPUR,"House 73, Road 13, ADITYAPUR, Jharkhand",8271002666,Demand Note,Abhishek (8271039154),InProgress,View
+17,260626020017,05-Apr-2026,New Power Connection LT,Suresh Yadav,BP900017,GHATSHILA,"House 211, Road 3, SARAIKELA, Jharkhand",8271001607,Land Survey,Priya (8271039156),InProgress,View
+18,260626020018,04-May-2026,Ownership Transfer,Suresh Yadav,BP900018,SARAIKELA,"House 132, Road 20, JAMSHEDPUR, Jharkhand",8271001364,Document Verification,Priya (8271039156),Submitted,View
+19,260626020019,05-Jun-2026,New Power Connection HT,Neha Gupta,-,JAMSHEDPUR,"House 179, Road 8, SARAIKELA, Jharkhand",8271008681,RFC Entry,Priya (8271039156),Pending,View
+20,260626020020,29-Apr-2026,Rate Category Change,Amit Kumar,-,CHAIBASA,"House 496, Road 20, GHATSHILA, Jharkhand",8271007046,Bill Verification,Rahul (8271039155),Rejected,View
+21,260626020021,20-Apr-2026,Load Change-Enhancement,Neha Gupta,-,JAMSHEDPUR,"House 177, Road 9, SARAIKELA, Jharkhand",8271001317,Load Survey,Rahul (8271039155),InProgress,View
+22,260626020022,01-Jun-2026,Load Change-Enhancement,Rohit Kumar,-,GHATSHILA,"House 151, Road 19, GHATSHILA, Jharkhand",8271009402,Load Survey,Rahul (8271039155),Rejected,View
+23,260626020023,19-Jun-2026,New Power Connection LT,Anjali Verma,BP900023,ADITYAPUR,"House 95, Road 11, CHAIBASA, Jharkhand",8271003094,Demand Note,Rahul (8271039155),Rejected,View
+24,260626020024,13-Jun-2026,Load Change-Reduction,Priya Singh,BP900024,SARAIKELA,"House 151, Road 8, JAMSHEDPUR, Jharkhand",8271001338,Document Verification,Rahul (8271039155),Rejected,View
+25,260626020025,26-May-2026,Temporary Power Connection,Amit Kumar,BP900025,SARAIKELA,"House 245, Road 2, GHATSHILA, Jharkhand",8271008804,Land Survey,Priya (8271039156),Rejected,View
+26,260626020026,14-Apr-2026,New Power Connection HT,Neha Gupta,BP900026,ADITYAPUR,"House 325, Road 17, ADITYAPUR, Jharkhand",8271004265,Job Allotment,Priya (8271039156),Approved,View
+27,260626020027,01-May-2026,New Power Connection LT,Amit Kumar,BP900027,JAMSHEDPUR,"House 116, Road 9, SARAIKELA, Jharkhand",8271006832,Demand Note,Priya (8271039156),Submitted,View
+28,260626020028,27-May-2026,Name Change,Abhishek,-,SARAIKELA,"House 278, Road 5, CHAIBASA, Jharkhand",8271008433,Land Survey,Priya (8271039156),Completed,View
+29,260626020029,25-Jun-2026,Ownership Transfer,Priya Singh,-,ADITYAPUR,"House 339, Road 12, ADITYAPUR, Jharkhand",8271009117,Energization,Vibha (8271039157),Pending,View
+30,260626020030,13-Apr-2026,New Power Connection LT,Abhishek,BP900030,JAMSHEDPUR,"House 237, Road 16, SARAIKELA, Jharkhand",8271003905,Load Survey,Rahul (8271039155),Approved,View
+31,260626020031,19-Apr-2026,Rate Category Change,Suresh Yadav,-,SARAIKELA,"House 494, Road 14, SARAIKELA, Jharkhand",8271009767,RFC Entry,Abhishek (8271039154),Submitted,View
+32,260626020032,05-Apr-2026,New Power Connection HT,Rahul Sharma,-,ADITYAPUR,"House 118, Road 15, JAMSHEDPUR, Jharkhand",8271006877,Bill Verification,Rahul (8271039155),Completed,View
+33,260626020033,26-Apr-2026,Load Change-Reduction,Amit Kumar,BP900033,GHATSHILA,"House 391, Road 18, ADITYAPUR, Jharkhand",8271008157,RFC Entry,Rahul (8271039155),Submitted,View
+34,260626020034,02-Apr-2026,Temporary Power Connection,Amit Kumar,-,JAMSHEDPUR,"House 476, Road 3, CHAIBASA, Jharkhand",8271003358,Energization,Abhishek (8271039154),Approved,View
+35,260626020035,17-Apr-2026,New Power Connection LT,Rahul Sharma,BP900035,GHATSHILA,"House 24, Road 2, CHAIBASA, Jharkhand",8271008819,Load Survey,Abhishek (8271039154),InProgress,View
+36,260626020036,20-Jun-2026,Ownership Transfer,Muskan Gupta,BP900036,CHAIBASA,"House 124, Road 17, GHATSHILA, Jharkhand",8271006140,Load Survey,Rahul (8271039155),Submitted,View
+37,260626020037,28-Jun-2026,New Power Connection HT,Rohit Kumar,BP900037,JAMSHEDPUR,"House 312, Road 5, JAMSHEDPUR, Jharkhand",8271005900,Application Verification,Vibha (8271039157),Pending,View
+38,260626020038,23-May-2026,Load Change-Enhancement,Amit Kumar,-,GHATSHILA,"House 311, Road 1, SARAIKELA, Jharkhand",8271002149,Load Survey,Priya (8271039156),Completed,View
+39,260626020039,09-Apr-2026,Permanent Disconnection,Suresh Yadav,-,CHAIBASA,"House 42, Road 7, CHAIBASA, Jharkhand",8271005364,Bill Verification,Rahul (8271039155),Pending,View
+40,260626020040,07-Apr-2026,New Power Connection LT,Rahul Sharma,BP900040,CHAIBASA,"House 68, Road 7, SARAIKELA, Jharkhand",8271001551,Document Verification,Priya (8271039156),InProgress,View
+41,260626020041,16-Apr-2026,Meter Relocation,Vikas Singh,-,GHATSHILA,"House 11, Road 4, JAMSHEDPUR, Jharkhand",8271007870,Load Survey,Rahul (8271039155),Pending,View
+42,260626020042,02-Jun-2026,Load Change-Enhancement,Suresh Yadav,-,GHATSHILA,"House 414, Road 10, SARAIKELA, Jharkhand",8271003835,Job Allotment,Rahul (8271039155),InProgress,View
+43,260626020043,24-Jun-2026,Temporary Power Connection,Suresh Yadav,BP900043,ADITYAPUR,"House 329, Road 13, CHAIBASA, Jharkhand",8271003879,Job Allotment,Vibha (8271039157),Completed,View
+44,260626020044,20-May-2026,Name Change,Neha Gupta,-,JAMSHEDPUR,"House 287, Road 6, JAMSHEDPUR, Jharkhand",8271004632,Land Survey,Vibha (8271039157),Approved,View
+45,260626020045,13-May-2026,Name Change,Neha Gupta,-,GHATSHILA,"House 293, Road 9, JAMSHEDPUR, Jharkhand",8271007973,Bill Verification,Priya (8271039156),Completed,View
+46,260626020046,22-Apr-2026,Load Change-Reduction,Rahul Sharma,BP900046,GHATSHILA,"House 90, Road 12, GHATSHILA, Jharkhand",8271005353,Bill Verification,Priya (8271039156),Approved,View
+47,260626020047,13-May-2026,Permanent Disconnection,Amit Kumar,BP900047,SARAIKELA,"House 499, Road 12, SARAIKELA, Jharkhand",8271009768,Load Survey,Rahul (8271039155),Pending,View
+48,260626020048,10-Apr-2026,Load Change-Enhancement,Suresh Yadav,-,CHAIBASA,"House 122, Road 15, SARAIKELA, Jharkhand",8271006623,Load Survey,Rahul (8271039155),Pending,View
+49,260626020049,21-Jun-2026,Rate Category Change,Abhishek,BP900049,JAMSHEDPUR,"House 22, Road 11, JAMSHEDPUR, Jharkhand",8271001481,Job Allotment,Vibha (8271039157),Approved,View
+50,260626020050,29-May-2026,Permanent Disconnection,Priya Singh,-,CHAIBASA,"House 194, Road 9, GHATSHILA, Jharkhand",8271002299,Demand Note,Rahul (8271039155),Submitted,View
+51,260626020051,04-May-2026,Ownership Transfer,Neha Gupta,BP900051,CHAIBASA,"House 402, Road 6, GHATSHILA, Jharkhand",8271004148,Document Verification,Vibha (8271039157),Completed,View
+52,260626020052,11-May-2026,Ownership Transfer,Rahul Sharma,BP900052,SARAIKELA,"House 422, Road 2, JAMSHEDPUR, Jharkhand",8271007876,Bill Verification,Rahul (8271039155),Rejected,View
+53,260626020053,06-Apr-2026,Load Change-Reduction,Anjali Verma,-,CHAIBASA,"House 462, Road 2, CHAIBASA, Jharkhand",8271006644,Document Verification,Rahul (8271039155),Approved,View
+54,260626020054,21-May-2026,Name Change,Abhishek,BP900054,SARAIKELA,"House 493, Road 7, JAMSHEDPUR, Jharkhand",8271005616,Document Verification,Vibha (8271039157),Approved,View
+55,260626020055,10-Jun-2026,Ownership Transfer,Abhishek,-,ADITYAPUR,"House 94, Road 5, GHATSHILA, Jharkhand",8271007917,Document Verification,Abhishek (8271039154),Rejected,View
+56,260626020056,20-May-2026,Ownership Transfer,Priya Singh,-,SARAIKELA,"House 370, Road 19, ADITYAPUR, Jharkhand",8271001758,RFC Entry,Abhishek (8271039154),Approved,View
+57,260626020057,21-May-2026,Temporary Power Connection,Rahul Sharma,BP900057,GHATSHILA,"House 294, Road 8, CHAIBASA, Jharkhand",8271001627,Bill Verification,Vibha (8271039157),InProgress,View
+58,260626020058,14-May-2026,Rate Category Change,Abhishek,BP900058,SARAIKELA,"House 144, Road 14, ADITYAPUR, Jharkhand",8271008547,Estimate Approval,Vibha (8271039157),Submitted,View
+59,260626020059,04-May-2026,New Power Connection LT,Priya Singh,BP900059,SARAIKELA,"House 292, Road 20, ADITYAPUR, Jharkhand",8271008034,Document Verification,Vibha (8271039157),InProgress,View
+60,260626020060,14-Jun-2026,Load Change-Enhancement,Vikas Singh,-,ADITYAPUR,"House 163, Road 5, CHAIBASA, Jharkhand",8271006819,Land Survey,Priya (8271039156),InProgress,View
+61,260626020061,14-Apr-2026,New Power Connection LT,Suresh Yadav,BP900061,JAMSHEDPUR,"House 183, Road 1, ADITYAPUR, Jharkhand",8271007592,Energization,Abhishek (8271039154),Rejected,View
+62,260626020062,15-May-2026,Meter Relocation,Vikas Singh,BP900062,GHATSHILA,"House 140, Road 15, CHAIBASA, Jharkhand",8271007637,Job Allotment,Rahul (8271039155),Rejected,View
+63,260626020063,21-Apr-2026,Meter Relocation,Rohit Kumar,-,GHATSHILA,"House 34, Road 12, SARAIKELA, Jharkhand",8271001221,Bill Verification,Rahul (8271039155),Completed,View
+64,260626020064,18-Jun-2026,Ownership Transfer,Muskan Gupta,-,GHATSHILA,"House 392, Road 20, GHATSHILA, Jharkhand",8271004583,Estimate Approval,Priya (8271039156),Rejected,View
+65,260626020065,17-Apr-2026,New Power Connection HT,Rohit Kumar,-,SARAIKELA,"House 10, Road 6, SARAIKELA, Jharkhand",8271007478,Energization,Abhishek (8271039154),Approved,View
+66,260626020066,07-Jun-2026,Load Change-Reduction,Rahul Sharma,BP900066,GHATSHILA,"House 316, Road 17, SARAIKELA, Jharkhand",8271001786,RFC Entry,Priya (8271039156),Approved,View
+67,260626020067,17-May-2026,Load Change-Enhancement,Muskan Gupta,-,SARAIKELA,"House 15, Road 16, CHAIBASA, Jharkhand",8271005383,Load Survey,Priya (8271039156),Submitted,View
+68,260626020068,11-Apr-2026,Load Change-Reduction,Rohit Kumar,BP900068,ADITYAPUR,"House 25, Road 3, ADITYAPUR, Jharkhand",8271005270,Job Allotment,Abhishek (8271039154),Approved,View
+69,260626020069,23-Jun-2026,Rate Category Change,Anjali Verma,-,GHATSHILA,"House 291, Road 8, JAMSHEDPUR, Jharkhand",8271009285,Energization,Abhishek (8271039154),Approved,View
+70,260626020070,21-May-2026,Load Change-Reduction,Priya Singh,BP900070,JAMSHEDPUR,"House 187, Road 16, CHAIBASA, Jharkhand",8271005722,Energization,Vibha (8271039157),Pending,View
+71,260626020071,11-May-2026,Rate Category Change,Muskan Gupta,-,CHAIBASA,"House 165, Road 14, GHATSHILA, Jharkhand",8271003951,Energization,Abhishek (8271039154),Pending,View
+72,260626020072,20-Apr-2026,Meter Relocation,Suresh Yadav,-,ADITYAPUR,"House 291, Road 20, CHAIBASA, Jharkhand",8271006610,Document Verification,Rahul (8271039155),InProgress,View
+73,260626020073,06-May-2026,Name Change,Rohit Kumar,-,JAMSHEDPUR,"House 359, Road 8, JAMSHEDPUR, Jharkhand",8271002712,Application Verification,Priya (8271039156),Pending,View
+74,260626020074,24-May-2026,Meter Relocation,Vikas Singh,BP900074,ADITYAPUR,"House 259, Road 6, GHATSHILA, Jharkhand",8271004940,Energization,Vibha (8271039157),Rejected,View
+75,260626020075,25-May-2026,Rate Category Change,Rahul Sharma,-,SARAIKELA,"House 157, Road 16, ADITYAPUR, Jharkhand",8271008395,Land Survey,Abhishek (8271039154),Completed,View
+76,260626020076,01-Jun-2026,Rate Category Change,Neha Gupta,-,SARAIKELA,"House 323, Road 4, CHAIBASA, Jharkhand",8271008914,Job Allotment,Priya (8271039156),Pending,View
+77,260626020077,24-Apr-2026,Meter Relocation,Amit Kumar,BP900077,JAMSHEDPUR,"House 122, Road 6, CHAIBASA, Jharkhand",8271002801,Demand Note,Abhishek (8271039154),Rejected,View
+78,260626020078,17-May-2026,New Power Connection LT,Rohit Kumar,BP900078,CHAIBASA,"House 149, Road 13, JAMSHEDPUR, Jharkhand",8271005028,Demand Note,Rahul (8271039155),Submitted,View
+79,260626020079,27-Apr-2026,Temporary Power Connection,Anjali Verma,-,ADITYAPUR,"House 452, Road 5, JAMSHEDPUR, Jharkhand",8271006952,Document Verification,Rahul (8271039155),Approved,View
+80,260626020080,18-May-2026,Ownership Transfer,Abhishek,BP900080,JAMSHEDPUR,"House 386, Road 2, GHATSHILA, Jharkhand",8271001023,Application Verification,Priya (8271039156),Rejected,View
+81,260626020081,21-Jun-2026,Load Change-Enhancement,Abhishek,-,GHATSHILA,"House 262, Road 3, JAMSHEDPUR, Jharkhand",8271001464,Energization,Rahul (8271039155),Completed,View
+82,260626020082,27-Jun-2026,Load Change-Enhancement,Vikas Singh,-,GHATSHILA,"House 29, Road 10, JAMSHEDPUR, Jharkhand",8271006364,Load Survey,Abhishek (8271039154),Approved,View
+83,260626020083,24-Jun-2026,Temporary Power Connection,Suresh Yadav,-,SARAIKELA,"House 392, Road 5, JAMSHEDPUR, Jharkhand",8271002116,RFC Entry,Abhishek (8271039154),Rejected,View
+84,260626020084,16-May-2026,New Power Connection HT,Muskan Gupta,-,JAMSHEDPUR,"House 149, Road 2, JAMSHEDPUR, Jharkhand",8271009581,Job Allotment,Abhishek (8271039154),Pending,View
+85,260626020085,10-May-2026,Load Change-Reduction,Anjali Verma,-,CHAIBASA,"House 242, Road 16, ADITYAPUR, Jharkhand",8271008636,Energization,Rahul (8271039155),Submitted,View
+86,260626020086,05-May-2026,New Power Connection LT,Vikas Singh,BP900086,SARAIKELA,"House 67, Road 5, GHATSHILA, Jharkhand",8271007358,Application Verification,Abhishek (8271039154),Rejected,View
+87,260626020087,22-Jun-2026,Permanent Disconnection,Vikas Singh,-,CHAIBASA,"House 454, Road 1, SARAIKELA, Jharkhand",8271008011,Land Survey,Rahul (8271039155),Submitted,View
+88,260626020088,11-May-2026,Temporary Power Connection,Priya Singh,BP900088,JAMSHEDPUR,"House 85, Road 8, CHAIBASA, Jharkhand",8271007159,Energization,Rahul (8271039155),Rejected,View
+89,260626020089,29-Jun-2026,Ownership Transfer,Amit Kumar,BP900089,GHATSHILA,"House 400, Road 20, JAMSHEDPUR, Jharkhand",8271004264,Demand Note,Rahul (8271039155),Submitted,View
+90,260626020090,12-Jun-2026,Rate Category Change,Rahul Sharma,-,JAMSHEDPUR,"House 402, Road 17, ADITYAPUR, Jharkhand",8271009173,Demand Note,Rahul (8271039155),Pending,View
+91,260626020091,28-Jun-2026,Rate Category Change,Amit Kumar,-,CHAIBASA,"House 129, Road 13, SARAIKELA, Jharkhand",8271006561,Energization,Vibha (8271039157),Rejected,View
+92,260626020092,25-Apr-2026,New Power Connection LT,Rohit Kumar,BP900092,ADITYAPUR,"House 418, Road 19, GHATSHILA, Jharkhand",8271005786,Application Verification,Abhishek (8271039154),Completed,View
+93,260626020093,16-May-2026,Temporary Power Connection,Anjali Verma,-,GHATSHILA,"House 394, Road 12, GHATSHILA, Jharkhand",8271002118,Demand Note,Rahul (8271039155),Pending,View
+94,260626020094,24-Apr-2026,Load Change-Enhancement,Abhishek,-,ADITYAPUR,"House 430, Road 1, SARAIKELA, Jharkhand",8271008996,Document Verification,Priya (8271039156),Rejected,View
+95,260626020095,27-May-2026,New Power Connection HT,Suresh Yadav,BP900095,ADITYAPUR,"House 188, Road 17, ADITYAPUR, Jharkhand",8271003059,Demand Note,Priya (8271039156),Pending,View
+96,260626020096,23-May-2026,New Power Connection HT,Rahul Sharma,-,SARAIKELA,"House 26, Road 15, GHATSHILA, Jharkhand",8271004916,Bill Verification,Priya (8271039156),Completed,View
+97,260626020097,11-Apr-2026,Load Change-Reduction,Vikas Singh,BP900097,ADITYAPUR,"House 255, Road 4, GHATSHILA, Jharkhand",8271004808,Load Survey,Rahul (8271039155),Pending,View
+98,260626020098,25-Apr-2026,Meter Relocation,Amit Kumar,-,ADITYAPUR,"House 272, Road 3, ADITYAPUR, Jharkhand",8271001378,Application Verification,Vibha (8271039157),Submitted,View
+99,260626020099,12-Apr-2026,Name Change,Vikas Singh,-,GHATSHILA,"House 434, Road 8, JAMSHEDPUR, Jharkhand",8271003539,RFC Entry,Rahul (8271039155),InProgress,View
+100,260626020100,08-Jun-2026,Load Change-Enhancement,Suresh Yadav,BP900100,SARAIKELA,"House 414, Road 2, GHATSHILA, Jharkhand",8271004710,RFC Entry,Abhishek (8271039154),InProgress,View

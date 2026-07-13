@@ -126,12 +126,11 @@ export const TrackApplication: React.FC = () => {
         );
         
         // If the application was Rejected because of document, change status back to verification
-        if (selectedApp.currentStatus === 'Rejected' || selectedApp.currentStatus === 'Document Verification') {
-          await applicationService.updateApplicationStatus(
-            selectedApp.id,
-            'Document Verification',
-            `Customer re-uploaded corrected document: ${docType}`
-          );
+        if (selectedApp.currentStatus === 'Correction Required' || selectedApp.currentStatus === 'Rejected') {
+          await applicationService.updateApplication(selectedApp.id, {
+            ...selectedApp,
+            currentStatus: 'Submitted'
+          });
         }
 
         toast.success(`Corrected ${docType} submitted successfully!`);
