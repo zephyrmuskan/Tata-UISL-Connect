@@ -62,6 +62,7 @@ export const AdminApplications: React.FC = () => {
   const [selectedReceiptAppId, setSelectedReceiptAppId] = useState<number>(1);
   const [energizationDivision, setEnergizationDivision] = useState<'Electricity' | 'Water'>('Electricity');
   const [moveInDivision, setMoveInDivision] = useState<'Electricity' | 'Water'>('Electricity');
+  const [rfcTrDivision, setRfcTrDivision] = useState<'Electricity' | 'Water'>('Electricity');
   const [expandedEnergizationId, setExpandedEnergizationId] = useState<number | null>(null);
 
   // Material Master State
@@ -2207,66 +2208,60 @@ export const AdminApplications: React.FC = () => {
   };
 
   const renderRfcTrDetails = () => {
-    const rfcApps = applications.slice(0, 2);
     return (
       <div className="space-y-6 text-left relative min-h-[85vh] max-w-[1700px] mx-auto animate-fadeIn">
-        <div className="bg-[#4B3E9E] text-white p-4 rounded-xl shadow-sm text-left">
-          <h2 className="text-sm font-extrabold uppercase tracking-wider">
-            Pending RFC / TR Details Entries
-          </h2>
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-150 dark:border-slate-700/50 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4 text-left">
+            <h2 className="text-base font-extrabold text-gray-950 dark:text-white uppercase tracking-wider">
+              RFC/TR Details
+            </h2>
+            <div className="relative animate-fadeIn">
+              <select
+                value={rfcTrDivision}
+                onChange={(e) => setRfcTrDivision(e.target.value as any)}
+                className="appearance-none bg-white dark:bg-slate-900 border border-[#e5e7eb] dark:border-slate-700 rounded-lg pl-3 pr-8 py-1.5 text-xs font-bold text-gray-800 dark:text-white cursor-pointer focus:outline-none focus:border-[#4B3E9E] shadow-sm"
+              >
+                <option value="Electricity">Electricity</option>
+                <option value="Water">Water</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                <ChevronDown size={14} className="text-gray-855 dark:text-white" />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-150 dark:border-slate-700/50 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs font-semibold text-gray-650 dark:text-gray-400">
-            <div className="flex items-center space-x-2">
-              <span>Show</span>
-              <select className="border border-gray-200 dark:border-slate-700 rounded px-2 py-1 bg-white dark:bg-slate-900 text-gray-750 outline-none">
-                <option value="10">10</option>
-              </select>
-              <span>entries</span>
-            </div>
-            <div className="flex items-center space-x-2 w-full sm:w-auto">
-              <span>Search:</span>
-              <input
-                type="text"
-                placeholder="Search..."
-                className="border border-gray-200 dark:border-slate-700 rounded px-3 py-1 bg-white dark:bg-slate-900 text-gray-750 outline-none w-full sm:w-52"
-              />
-            </div>
-          </div>
-
           <div className="overflow-x-auto border border-gray-150 dark:border-slate-700/60 rounded-xl">
-            <table className="w-full text-xs text-left min-w-[900px]">
+            <table className="w-full text-xs text-left min-w-[700px]">
               <thead className="bg-[#4B3E9E] text-white font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-3 w-12 text-center">#</th>
-                  <th className="py-3 px-3 text-left">Appl. No.</th>
-                  <th className="py-3 px-3 text-left">Applicant Name</th>
+                  <th className="py-3 px-3 w-40 text-left">Appl. No.</th>
+                  <th className="py-3 px-3 w-32 text-center">Appl. Date</th>
+                  <th className="py-3 px-3 text-left">Applicant</th>
                   <th className="py-3 px-3 text-left">BP/Consumer No.</th>
-                  <th className="py-3 px-3 text-center">RFC Entry Date</th>
-                  <th className="py-3 px-3 text-center">TR Entry Status</th>
-                  <th className="py-3 px-3 w-32 text-center">Action</th>
+                  <th className="py-3 px-3 text-left">Service Type</th>
+                  <th className="py-3 px-3 w-24 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700/40">
-                {rfcApps.map((a, idx) => (
-                  <tr key={a.id} className="hover:bg-slate-50/20">
+                {applications.slice(0, 1).map((a, idx) => (
+                  <tr key={a.id} className="hover:bg-slate-50/20 font-semibold">
                     <td className="py-2.5 px-3 font-semibold text-gray-400 text-center">{idx + 1}</td>
                     <td className="py-2.5 px-3 font-bold text-[#005BAC] text-left">{a.applicationNo}</td>
-                    <td className="py-2.5 px-3 font-semibold text-left">{a.fullName}</td>
-                    <td className="py-2.5 px-3 font-semibold text-gray-500 text-left">BP-83{a.id}91</td>
                     <td className="py-2.5 px-3 text-center">{formatDate(a.submittedDate)}</td>
-                    <td className="py-2.5 px-3 text-center">
-                      <span className="px-2.5 py-0.5 rounded-full font-bold text-[9px] bg-yellow-100 text-yellow-800">Pending TR</span>
-                    </td>
+                    <td className="py-2.5 px-3 text-left">{a.fullName}</td>
+                    <td className="py-2.5 px-3 text-left text-gray-500">BP-83{a.id}91</td>
+                    <td className="py-2.5 px-3 text-left text-gray-655 font-bold">{a.connectionTypeName || 'LT Domestic'}</td>
                     <td className="py-2.5 px-3 text-center">
                       <button
                         onClick={() => {
-                          toast.success(`RFC details updated for request ${a.applicationNo}.`);
+                          toast.success(`RFC/TR Entries updated for request ${a.applicationNo}.`);
                         }}
                         className="px-3 py-1.5 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-[10px] font-bold rounded transition shadow-sm w-full"
                       >
-                        Update Entries
+                        Update
                       </button>
                     </td>
                   </tr>
