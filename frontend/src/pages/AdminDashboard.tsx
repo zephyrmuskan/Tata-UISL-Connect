@@ -3,7 +3,8 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   BarChart3, CheckCircle, FileText, Download, Search, 
   FolderOpen, Archive, Clock, TrendingUp, Calendar, 
-  UserPlus, RefreshCw, Star, ChevronDown, ChevronUp, ChevronsUpDown, X
+  UserPlus, RefreshCw, Star, ChevronDown, ChevronUp, ChevronsUpDown, X,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { applicationService, authService } from '../services/api';
 import type { Application, User } from '../services/mockData';
@@ -28,6 +29,227 @@ export const AdminDashboard: React.FC = () => {
   const reportType = searchParams.get('type');
 
   const [applications, setApplications] = useState<Application[]>([]);
+  
+  // Reports specific inputs
+  const [reportInputType, setReportInputType] = useState<string>('');
+  const [reportInputLocation, setReportInputLocation] = useState<string>('');
+  const [reportInputFromDate, setReportInputFromDate] = useState<string>('2026-06-13');
+  const [reportInputToDate, setReportInputToDate] = useState<string>('2026-07-13');
+  const [generatedReport, setGeneratedReport] = useState<{
+    type: string;
+    location: string;
+    fromDate: string;
+    toDate: string;
+    headers: string[];
+    rows: any[][];
+    title: string;
+  } | null>(null);
+
+  const handleGenerateReportHelper = (type: string, location: string, fromDateStr: string, toDateStr: string) => {
+    if (!type) {
+      toast.warning('Please select a Report Type.');
+      return;
+    }
+    if (!location) {
+      toast.warning('Please select a Location.');
+      return;
+    }
+
+    const selectedType = type;
+    const reportTitle = 
+      selectedType === 'applications' ? 'Application Report' :
+      selectedType === 'officers' ? 'Officer Performance Report' :
+      selectedType === 'stages' ? 'Stage-wise Workflow Report' :
+      selectedType === 'approvals' ? 'Approved Connections Report' :
+      selectedType === 'rejections' ? 'Rejected Connections Report' : 'System Audit Report';
+
+    let reportHeaders: string[] = [];
+    let reportRows: any[][] = [];
+
+    // Filter applications matching location and date range
+    const from = new Date(fromDateStr);
+    const to = new Date(toDateStr);
+    to.setHours(23, 59, 59, 999);
+
+    const filtered = applications.filter(app => {
+      const matchesLocation = location === 'All' || 
+        (app.businessArea && app.businessArea.toUpperCase() === location.toUpperCase()) ||
+        (app.area && app.area.toUpperCase() === location.toUpperCase()) ||
+        (app.city && app.city.toUpperCase() === location.toUpperCase());
+
+      const appDate = app.submittedDate ? new Date(app.submittedDate) : null;
+      const matchesDate = !appDate || (appDate >= from && appDate <= to);
+
+      return matchesLocation && matchesDate;
+    });
+
+    if (selectedType === 'officers') {
+      reportHeaders = ['Officer Name', 'Role Desk', 'Active Queue', 'Average Process Time', 'SLA Adherence'];
+      
+      const officer1Apps = filtered.filter(a => (a.assignedOfficer || '').includes('Officer 1') && !['Completed', 'Rejected'].includes(a.currentStatus)).length;
+      const officer2Apps = filtered.filter(a => (a.assignedOfficer || '').includes('Officer 2') && !['Completed', 'Rejected'].includes(a.currentStatus)).length;
+      const officer3Apps = filtered.filter(a => (a.assignedOfficer || '').includes('Officer 3') && !['Completed', 'Rejected'].includes(a.currentStatus)).length;
+
+      reportRows = [
+        ['Officer 1 - Doc Verifier', 'Document Verification', `${officer1Apps} Applications`, '1.2 Days', '98%'],
+        ['Officer 2 - Tech Surveyor', 'Technical Assessment', `${officer2Apps} Applications`, '2.5 Days', '92%'],
+        ['Officer 3 - Approval Officer', 'Demand Note & Approval', `${officer3Apps} Applications`, '1.8 Days', '96%']
+      ];
+    } else if (selectedType === 'stages') {
+      reportHeaders = ['Workflow Verification Stage', 'Applications In Stage', 'SLA Limit'];
+      
+      const stageCounts: { [key: string]: number } = {};
+      filtered.forEach(a => {
+        const stage = a.currentStage || 'Application Verification';
+        stageCounts[stage] = (stageCounts[stage] || 0) + 1;
+      });
+
+      reportRows = [
+        ['Application Verification', `${stageCounts['Application Verification'] || 0} Apps`, '2 Days'],
+        ['Document Verification', `${stageCounts['Document Verification'] || 0} Apps`, '3 Days'],
+        ['Load Survey', `${stageCounts['Load Survey'] || 0} Apps`, '4 Days'],
+        ['Land Survey', `${stageCounts['Land Survey'] || 0} Apps`, '3 Days'],
+        ['Demand Note', `${stageCounts['Demand Note'] || 0} Apps`, '2 Days']
+      ];
+    } else if (selectedType === 'approvals') {
+      reportHeaders = ['Application No.', 'Customer Name', 'Type', 'Area', 'Stage', 'Approved Date'];
+      reportRows = filtered
+        .filter(app => ['Completed', 'Approved'].includes(app.currentStatus))
+        .map(app => [
+          app.applicationNumber,
+          app.fullName || app.customerName,
+          app.connectionTypeName || 'New Connection',
+          app.businessArea || app.area || 'Jamshedpur',
+          app.currentStage || 'Approved',
+          formatDate(app.lastUpdated)
+        ]);
+    } else if (selectedType === 'rejections') {
+      reportHeaders = ['Application No.', 'Customer Name', 'Type', 'Area', 'Status', 'Last Updated'];
+      reportRows = filtered
+        .filter(app => app.currentStatus === 'Rejected')
+        .map(app => [
+          app.applicationNumber,
+          app.fullName || app.customerName,
+          app.connectionTypeName || 'New Connection',
+          app.businessArea || app.area || 'Jamshedpur',
+          app.currentStatus,
+          formatDate(app.lastUpdated)
+        ]);
+    } else {
+      reportHeaders = ['Application No.', 'Customer Name', 'Type', 'Area', 'Stage', 'Status', 'Submitted Date'];
+      reportRows = filtered.map(app => [
+        app.applicationNumber,
+        app.fullName || app.customerName,
+        app.connectionTypeName || 'New Connection',
+        app.businessArea || app.area || 'Jamshedpur',
+        app.currentStage || 'Application Verification',
+        app.currentStatus || 'Submitted',
+        formatDate(app.submittedDate)
+      ]);
+    }
+
+    setGeneratedReport({
+      type: selectedType,
+      location: location,
+      fromDate: fromDateStr,
+      toDate: toDateStr,
+      headers: reportHeaders,
+      rows: reportRows,
+      title: reportTitle
+    });
+
+    toast.success(`${reportTitle} generated successfully for ${location}.`);
+  };
+
+  const handleGenerateReport = () => {
+    handleGenerateReportHelper(reportInputType, reportInputLocation, reportInputFromDate, reportInputToDate);
+  };
+
+  const handleExportExcel = () => {
+    if (!generatedReport) return;
+    const headersStr = generatedReport.headers.join(',');
+    const rowsStr = generatedReport.rows.map(row => 
+      row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    const csvContent = `${headersStr}\n${rowsStr}`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${generatedReport.type}_report_${Date.now()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`${generatedReport.title} exported to Excel/CSV successfully.`);
+  };
+
+  const handleDownloadPDF = () => {
+    if (!generatedReport) return;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${generatedReport.title}</title>
+            <style>
+              body { font-family: sans-serif; padding: 40px; color: #333; }
+              h1 { color: #005BAC; margin-bottom: 5px; }
+              p { color: #666; font-size: 12px; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 12px; }
+              th { background-color: #f5f5f5; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <h1>${generatedReport.title}</h1>
+            <p>Generated on ${new Date().toLocaleString()} | Tata UISL Admin Portal</p>
+            <p><strong>Location:</strong> ${generatedReport.location} | <strong>From Date:</strong> ${generatedReport.fromDate} | <strong>To Date:</strong> ${generatedReport.toDate}</p>
+            <table>
+              <thead>
+                <tr>
+                  ${generatedReport.headers.map(h => `<th>${h}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${generatedReport.rows.map(row => `
+                  <tr>
+                    ${row.map(cell => `<td>${cell}</td>`).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <script>window.onload = function() { window.print(); window.close(); }</script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      toast.success(`${generatedReport.title} PDF printable view opened.`);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'reports' && reportType && applications.length > 0) {
+      const type = (reportType === 'Consolidated Reports' || reportType === 'Consolidated') ? 'applications' : reportType;
+      setReportInputType(type);
+      const loc = reportInputLocation || 'All';
+      setReportInputLocation(loc);
+      handleGenerateReportHelper(type, loc, reportInputFromDate, reportInputToDate);
+    }
+  }, [reportType, activeTab, applications.length]);
+
+  useEffect(() => {
+    if (applications.length > 0 && activeTab === 'reports') {
+      if (!generatedReport) {
+        const defaultType = reportInputType || 'applications';
+        const defaultLocation = reportInputLocation || 'All';
+        setReportInputType(defaultType);
+        setReportInputLocation(defaultLocation);
+        handleGenerateReportHelper(defaultType, defaultLocation, reportInputFromDate, reportInputToDate);
+      }
+    }
+  }, [applications, activeTab]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -610,171 +832,187 @@ export const AdminDashboard: React.FC = () => {
 
   // Render Reports Center Tab View
   if (activeTab === 'reports') {
-    const selectedType = reportType || 'applications';
-    const reportTitle = 
-      selectedType === 'applications' ? 'Application Report' :
-      selectedType === 'officers' ? 'Officer Performance Report' :
-      selectedType === 'stages' ? 'Stage-wise Workflow Report' :
-      selectedType === 'approvals' ? 'Approved Connections Report' :
-      selectedType === 'rejections' ? 'Rejected Connections Report' :
-      selectedType === 'daily' ? 'Daily Registration Report' :
-      selectedType === 'monthly' ? 'Monthly Trend Report' :
-      selectedType === 'pending' ? 'Pending SLA Backlog Report' :
-      selectedType === 'sla' ? 'SLA Performance Analytics' : 'System Audit Report';
-
-    let reportHeaders: string[] = [];
-    let reportRows: any[][] = [];
-
-    if (selectedType === 'officers') {
-      reportHeaders = ['Officer Name', 'Role Desk', 'Active Queue', 'Average Process Time', 'SLA Adherence'];
-      reportRows = [
-        ['Officer 1 - Doc Verifier', 'Document Verification', '5 Applications', '1.2 Days', '98%'],
-        ['Officer 2 - Tech Surveyor', 'Technical Assessment', '3 Applications', '2.5 Days', '92%'],
-        ['Officer 3 - Approval Officer', 'Demand Note & Approval', '2 Applications', '1.8 Days', '96%']
-      ];
-    } else if (selectedType === 'stages') {
-      reportHeaders = ['Workflow Verification Stage', 'Assigned Officer', 'Applications In Stage', 'Average Days In Stage', 'SLA Limit'];
-      reportRows = [
-        ['Application Verification', 'Officer 1 - Doc Verifier', '1 App', '0.5 Days', '2 Days'],
-        ['Document Verification', 'Officer 1 - Doc Verifier', '2 Apps', '1.2 Days', '3 Days'],
-        ['Load Survey', 'Officer 2 - Tech Surveyor', '3 Apps', '1.8 Days', '4 Days'],
-        ['Land Survey', 'Officer 2 - Tech Surveyor', '0 Apps', '1.5 Days', '3 Days'],
-        ['Demand Note', 'Officer 3 - Approval Officer', '1 App', '1.0 Days', '2 Days']
-      ];
-    } else {
-      reportHeaders = ['Application No.', 'Customer Name', 'Type', 'Stage', 'Priority', 'Last Updated'];
-      reportRows = divisionFilteredApps.map(app => [
-        app.applicationNumber,
-        app.fullName || app.customerName,
-        app.connectionTypeName || 'New Connection',
-        app.currentStage || 'Application Verification',
-        app.priority || 'Medium',
-        app.lastUpdated ? new Date(app.lastUpdated).toLocaleDateString() : 'N/A'
-      ]);
-    }
-
-    const handleDownload = (format: 'CSV' | 'PDF') => {
-      const headersStr = reportHeaders.join(',');
-      const rowsStr = reportRows.map(row => 
-        row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(',')
-      ).join('\n');
-      const csvContent = `${headersStr}\n${rowsStr}`;
-
-      if (format === 'CSV') {
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `${selectedType}_report_${Date.now()}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success(`${reportTitle} compiled successfully. Downloading CSV export.`);
-      } else {
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(`
-            <html>
-              <head>
-                <title>${reportTitle}</title>
-                <style>
-                  body { font-family: sans-serif; padding: 40px; color: #333; }
-                  h1 { color: #005BAC; margin-bottom: 5px; }
-                  p { color: #666; font-size: 12px; margin-bottom: 20px; }
-                  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                  th, td { border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 12px; }
-                  th { background-color: #f5f5f5; font-weight: bold; }
-                </style>
-              </head>
-              <body>
-                <h1>${reportTitle}</h1>
-                <p>Generated on ${new Date().toLocaleString()} | Tata UISL Admin Portal</p>
-                <table>
-                  <thead>
-                    <tr>
-                      ${reportHeaders.map(h => `<th>${h}</th>`).join('')}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${reportRows.map(row => `
-                      <tr>
-                        ${row.map(cell => `<td>${cell}</td>`).join('')}
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-                <script>window.onload = function() { window.print(); window.close(); }</script>
-              </body>
-            </html>
-          `);
-          printWindow.document.close();
-          toast.success(`${reportTitle} PDF printable view opened.`);
-        }
-      }
-    };
+    const reportTitle = generatedReport?.title || 'Consolidated Report';
+    const reportHeaders = generatedReport?.headers || [];
+    const reportRows = generatedReport?.rows || [];
 
     return (
       <div className="space-y-6 text-left">
+        {/* Banner header */}
         <div className="bg-gray-900 text-white p-6 rounded-2xl border border-gray-800 shadow-md flex flex-col md:flex-row justify-between items-start md:items-center">
           <div>
             <h1 className="text-xl font-extrabold flex items-center tracking-tight">
               Reports Analytics Center <span className="ml-2 text-base">📊</span>
             </h1>
-            <p className="text-xs text-gray-400 mt-1">Select and download officer audit reports and workflow status sheets.</p>
+            <p className="text-xs text-gray-400 mt-1">Select location and date range to filter connection request reports.</p>
           </div>
-          <div className="flex space-x-3 mt-4 md:mt-0">
-            <button 
-              onClick={() => handleDownload('CSV')}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg shadow transition"
-            >
-              Export CSV
-            </button>
-            <button 
-              onClick={() => handleDownload('PDF')}
-              className="px-4 py-2 bg-tata-blue hover:bg-tata-blue-hover text-white text-xs font-bold rounded-lg shadow transition"
-            >
-              Export PDF
-            </button>
+          {generatedReport && (
+            <div className="flex space-x-3 mt-4 md:mt-0">
+              <button 
+                onClick={handleDownloadPDF}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg shadow transition"
+              >
+                Export PDF
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Beautiful Application Report selectors card matching user's mockup */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700/60 shadow-sm overflow-hidden">
+          {/* Card Header (solid brand color, uppercase, bold) */}
+          <div className="bg-[#4b3e9e] text-white px-5 py-3.5 font-bold text-sm tracking-wide uppercase text-left">
+            Application Report
+          </div>
+          
+          {/* Card Body */}
+          <div className="p-5 flex flex-col">
+            <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
+              
+              {/* Report Type selector */}
+              <div className="flex flex-col space-y-1.5 flex-1 min-w-[200px] text-left">
+                <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                  Report Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={reportInputType}
+                  onChange={(e) => setReportInputType(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-750 rounded-lg text-xs font-semibold text-gray-750 dark:text-white outline-none focus:border-[#4b3e9e] focus:ring-1 focus:ring-[#4b3e9e]"
+                >
+                  <option value="">--Select--</option>
+                  <option value="applications">Applications Aggregate</option>
+                  <option value="officers">Officer Productivity Log</option>
+                  <option value="stages">Stage-wise Workflow Status</option>
+                  <option value="approvals">Approved Connection List</option>
+                  <option value="rejections">Rejected Backlog</option>
+                </select>
+              </div>
+
+              {/* Location selector */}
+              <div className="flex flex-col space-y-1.5 flex-1 min-w-[200px] text-left">
+                <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                  Location <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={reportInputLocation}
+                  onChange={(e) => setReportInputLocation(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-750 rounded-lg text-xs font-semibold text-gray-750 dark:text-white outline-none focus:border-[#4b3e9e] focus:ring-1 focus:ring-[#4b3e9e]"
+                >
+                  <option value="">--Select--</option>
+                  <option value="All">All Locations</option>
+                  <option value="JAMSHEDPUR">Jamshedpur</option>
+                  <option value="ADITYAPUR">Adityapur</option>
+                  <option value="RANCHI">Ranchi</option>
+                </select>
+              </div>
+
+              {/* From Date selector */}
+              <div className="flex flex-col space-y-1.5 text-left w-full md:w-auto">
+                <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                  From Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={reportInputFromDate}
+                  onChange={(e) => setReportInputFromDate(e.target.value)}
+                  className="w-full md:w-40 px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-750 rounded-lg text-xs font-semibold text-gray-750 dark:text-white outline-none focus:border-[#4b3e9e] focus:ring-1 focus:ring-[#4b3e9e]"
+                />
+              </div>
+
+              {/* To Date selector */}
+              <div className="flex flex-col space-y-1.5 text-left w-full md:w-auto">
+                <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                  To Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={reportInputToDate}
+                  onChange={(e) => setReportInputToDate(e.target.value)}
+                  className="w-full md:w-40 px-3 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-750 rounded-lg text-xs font-semibold text-gray-755 dark:text-white outline-none focus:border-[#4b3e9e] focus:ring-1 focus:ring-[#4b3e9e]"
+                />
+              </div>
+
+              {/* Generate Report Button */}
+              <button
+                onClick={handleGenerateReport}
+                className="px-5 py-2 bg-[#4b3e9e] hover:bg-[#3b2e8e] text-white text-xs font-bold rounded-lg shadow transition-all self-end h-[36px] w-full md:w-auto mt-2 md:mt-0"
+              >
+                Generate Report
+              </button>
+
+              {/* Export to Excel Button (green matching mockup) */}
+              <button
+                onClick={handleExportExcel}
+                disabled={!generatedReport}
+                className={`px-5 py-2 text-white text-xs font-bold rounded-lg shadow transition-all self-end h-[36px] w-full md:w-auto mt-2 md:mt-0 ${
+                  generatedReport 
+                    ? 'bg-[#82C793] hover:bg-[#6eb280] cursor-pointer font-bold' 
+                    : 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-gray-400 cursor-not-allowed font-bold'
+                }`}
+              >
+                Export to excel
+              </button>
+            </div>
+            
+            {/* Scroll Indicator Arrows at Bottom corners */}
+            <div className="flex justify-between items-center mt-4 pt-2.5 border-t border-gray-100 dark:border-slate-700/60 text-gray-400">
+              <button className="p-1 hover:text-gray-650 dark:hover:text-gray-200 transition">
+                <ChevronLeft size={16} />
+              </button>
+              <button className="p-1 hover:text-gray-650 dark:hover:text-gray-200 transition">
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700/60 flex flex-col space-y-2">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Select Report Query</span>
-            <select 
-              value={selectedType}
-              onChange={(e) => navigate(`/admin?tab=reports&type=${e.target.value}`)}
-              className="w-full p-2.5 bg-gray-55 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-gray-700 dark:text-white"
-            >
-              <option value="applications">Applications Aggregate</option>
-              <option value="officers">Officer Productivity Log</option>
-              <option value="stages">Stage-wise Workflow Status</option>
-              <option value="approvals">Approved Connection List</option>
-              <option value="rejections">Rejected Backlog</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-150 dark:border-slate-700/50">
-          <h2 className="text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider mb-4">{reportTitle} compiled</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-gray-50 dark:bg-slate-700 text-gray-400 font-bold uppercase">
-                <tr>
-                  {reportHeaders.map((h, i) => <th key={i} className="py-3 px-4">{h}</th>)}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-700/40">
-                {reportRows.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/20">
-                    {row.map((cell, cIdx) => <td key={cIdx} className="py-3.5 px-4 font-semibold text-gray-700 dark:text-gray-300">{cell}</td>)}
+        {/* Report Results */}
+        {generatedReport ? (
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-150 dark:border-slate-700/50 space-y-4">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700 pb-3">
+              <h2 className="text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider">{reportTitle} compiled</h2>
+              <span className="text-[10px] bg-blue-50 text-[#005BAC] dark:bg-slate-900/60 dark:text-blue-200 px-2 py-0.5 rounded-full font-bold">
+                {reportRows.length} Rows Found
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-gray-55 dark:bg-slate-700 text-gray-450 dark:text-gray-400 font-bold uppercase">
+                  <tr>
+                    {reportHeaders.map((h, i) => <th key={i} className="py-3 px-4">{h}</th>)}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-700/40">
+                  {reportRows.length > 0 ? (
+                    reportRows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/20">
+                        {row.map((cell, cIdx) => (
+                          <td key={cIdx} className="py-3.5 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={reportHeaders.length} className="py-8 text-center text-gray-400 font-semibold">
+                        No connection requests match the selected parameters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-800 p-12 rounded-2xl shadow-sm border border-gray-150 dark:border-slate-700/50 text-center flex flex-col items-center justify-center space-y-3">
+            <span className="text-4xl">📋</span>
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">No Report Generated</h3>
+            <p className="text-xs text-gray-400 max-w-md">
+              Please select a Report Type and Location, specify the date range, and click <strong>Generate Report</strong> to fetch live connection data.
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -1389,7 +1627,7 @@ export const AdminDashboard: React.FC = () => {
         {/* Enterprise Data Table */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-150 dark:border-slate-700/50 overflow-hidden text-xs">
           <div className="overflow-x-auto overflow-y-auto max-h-[60vh] relative">
-            <table className="w-full text-xs text-left border-collapse table-fixed min-w-[1700px]">
+            <table className="w-full text-xs text-left border-collapse table-auto">
               
               {/* Deep Purple header panel */}
               <thead className="bg-[#4B3E9E] text-white font-bold uppercase sticky top-0 z-20 shadow-sm border-b border-gray-200/20 text-xs">

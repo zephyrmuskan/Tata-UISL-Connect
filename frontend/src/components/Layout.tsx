@@ -283,10 +283,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         'Job Allotment',
         'RFC TR Details',
         'Energizations',
-        'Move In',
-        'Dismantling',
-        'Move Out',
-        'Feedback Form'
+        'Move In'
       ]
     },
     { name: 'Service Approval', path: '/admin/applications?stage=Load%20Survey%20Approval', icon: CheckCircle, hasChevron: false },
@@ -296,11 +293,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: BarChart3, 
       hasChevron: true,
       subItems: [
-        'Re Route Applications',
-        'Water Tanker',
-        'PrintApplicationForSurvey',
-        'Money Receipt',
-        'PrintApplicationForEstimate'
+        'Material Master',
+        'Feeder Line Charge Master',
+        'Energy Security Charge Master',
+        'Money Receipt'
       ]
     },
     { 
@@ -472,13 +468,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <div className="mx-2 mt-1 p-3 bg-[#E6F0FA] rounded-xl border border-blue-200 shadow-md text-left text-xs space-y-2 animate-fadeIn">
                           {link.subItems.map((sub: any) => {
                             if (typeof sub === 'string') {
+                              const isSubActive = location.pathname === link.path.split('?')[0] && location.search.includes(`type=${encodeURIComponent(sub)}`);
                               return (
                                 <Link
                                   key={sub}
-                                  to={sub === 'Water Tanker' ? '/water-tanker' : `${link.path}?type=${encodeURIComponent(sub)}`}
-                                  className="flex items-center space-x-2 py-1.5 px-2 hover:bg-[#005BAC]/10 rounded transition text-slate-700 hover:text-[#005BAC] font-semibold"
+                                  to={sub === 'Water Tanker' ? '/water-tanker' : `${link.path}${link.path.includes('?') ? '&' : '?'}type=${encodeURIComponent(sub)}`}
+                                  className={`flex items-center space-x-2 py-1.5 px-2 rounded transition font-semibold ${
+                                    isSubActive 
+                                      ? 'bg-[#FFA726] text-white shadow-md' 
+                                      : 'hover:bg-[#005BAC]/10 text-slate-700 hover:text-[#005BAC]'
+                                  }`}
                                 >
-                                  <span className="text-[#005BAC]/60 font-bold">•</span>
+                                  <span className={isSubActive ? 'text-white' : 'text-[#005BAC]/60 font-bold'}>•</span>
                                   <span>{sub}</span>
                                 </Link>
                               );
@@ -501,16 +502,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
                                   {isSubExpanded && (
                                     <div className="pl-6 space-y-1.5 border-l border-[#005BAC]/20 ml-4 py-1">
-                                      {sub.subItems.map((grand: string, gidx: number) => (
-                                        <Link
-                                          key={grand + '-' + gidx}
-                                          to={`${link.path}?type=${encodeURIComponent(grand)}`}
-                                          className="flex items-center space-x-2 py-1 px-2 hover:bg-[#005BAC]/5 rounded transition text-slate-600 hover:text-[#005BAC] font-medium"
-                                        >
-                                          <span className="text-[#005BAC]/40">•</span>
-                                          <span>{grand}</span>
-                                        </Link>
-                                      ))}
+                                      {sub.subItems.map((grand: string, gidx: number) => {
+                                        const isGrandActive = location.pathname === link.path.split('?')[0] && location.search.includes(`type=${encodeURIComponent(grand)}`);
+                                        return (
+                                          <Link
+                                            key={grand + '-' + gidx}
+                                            to={`${link.path}${link.path.includes('?') ? '&' : '?'}type=${encodeURIComponent(grand)}`}
+                                            className={`flex items-center space-x-2 py-1 px-2 rounded transition font-medium ${
+                                              isGrandActive 
+                                                ? 'bg-[#FFA726] text-white shadow-sm' 
+                                                : 'hover:bg-[#005BAC]/5 text-slate-600 hover:text-[#005BAC]'
+                                            }`}
+                                          >
+                                            <span className={isGrandActive ? 'text-white' : 'text-[#005BAC]/40'}>•</span>
+                                            <span>{grand}</span>
+                                          </Link>
+                                        );
+                                      })}
                                     </div>
                                   )}
                                 </div>
