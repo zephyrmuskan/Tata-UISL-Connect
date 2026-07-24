@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   Sun, Moon, Bell, LogOut, Menu, X, User as UserIcon, 
-  FileText, Home, PlusCircle, Settings, Clipboard, Shield,
+  FileText, Home, PlusCircle, Settings, Clipboard, Shield, ShieldCheck,
   Clock, Users, BarChart3, HelpCircle, Lock, ChevronDown, Search,
   ChevronRight, RefreshCw, Play, AlertCircle, CheckCircle, Truck
 } from 'lucide-react';
-import { authService, notificationService, applicationService } from '../services/api';
+import { authService, notificationService, applicationService, adminMasterService } from '../services/api';
 import { type User, type Notification, type Application } from '../services/mockData';
 import { toast } from 'react-toastify';
 import { TataEmblem } from './TataLogo';
@@ -49,6 +49,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Dynamic Consumer Menu Rights
+  const [consumerAllowedMenus, setConsumerAllowedMenus] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadMenuRights = async () => {
+      try {
+        const rights = await adminMasterService.getMenuRights();
+        const consumerRights = rights.filter(r => r.roleName === 'Consumer' && r.isSelect);
+        if (consumerRights.length > 0) {
+          setConsumerAllowedMenus(consumerRights.map(r => r.menuName.toLowerCase()));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadMenuRights();
+  }, []);
+
   // Persist sidebar state to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('tata_sidebar_open', String(sidebarOpen));
@@ -87,6 +105,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, [currentUser]);
+
+  // Session tracking browser closure listener
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      authService.closeSessionBeacon();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   // Dark Mode side effects
   useEffect(() => {
@@ -154,6 +183,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const adminLinks = [
     { name: 'Dashboard', path: '/admin', icon: Home, hasChevron: false },
     { 
+      name: 'Master', 
+      path: '/admin/settings', 
+      icon: Shield, 
+      hasChevron: true,
+      subItems: [
+        'Page Master',
+        'Role Master',
+        'Role Mapping',
+        'Menu Rights',
+        'Land Type',
+        'Sub Land',
+        'Reset Password - Admin',
+        'Reset Mobile Email MFA'
+      ]
+    },
+    { 
       name: 'New Connection', 
       path: '/admin/applications', 
       icon: PlusCircle, 
@@ -183,6 +228,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: Settings, 
       hasChevron: true,
       subItems: [
+        'Service Wise Stage Approval Level Setting',
         'Route Master'
       ]
     },
@@ -203,6 +249,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Permanent Disconnection', path: '/admin/applications?type=Permanent%20Disconnection', icon: X, hasChevron: false },
     { name: 'Energy Meter Testing', path: '/admin/applications?type=Energy%20Meter%20Testing', icon: FileText, hasChevron: false },
     { name: 'Application Verification', path: '/admin/applications?stage=Application%20Verification', icon: CheckCircle, hasChevron: false },
+    { name: 'Document Verification', path: '/admin/applications?stage=Document%20Verification&openVerification=true', icon: ShieldCheck, hasChevron: false },
     { 
       name: 'Survey', 
       path: '/admin/applications', 
@@ -385,7 +432,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Navigation Items Links */}
         <nav className="flex-1 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
           {currentUser.role !== 'Admin' ? (
-            customerLinks.map((link) => {
+            customerLinks
+              .filter(link => {
+                if (link.isAction) return true;
+                if (consumerAllowedMenus.length === 0) return true;
+                return consumerAllowedMenus.some(m => m.includes(link.name.toLowerCase()) || link.name.toLowerCase().includes(m));
+              })
+              .map((link) => {
               const Icon = link.icon;
               const isActive = !link.isAction && (
                 link.path.includes('?') 
@@ -857,7 +910,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       // Due type filter
                       if (filterType === 'My Tasks') {
                         const isMine = app.assignedOfficer.toLowerCase().includes(currentUser.fullName.toLowerCase()) ||
-                                       app.assignedOfficer.toLowerCase().includes(currentUser.officerRole?.toLowerCase() || '');
+                                       (currentUser.officerRole && app.assignedOfficer.toLowerCase().includes(currentUser.officerRole.toLowerCase())) ||
+                                       currentUser.role === 'Admin';
                         if (!isMine) return false;
                       } else if (filterType === 'Overdue') {
                         if (!app.dueDate || new Date(app.dueDate) >= new Date()) return false;
@@ -883,9 +937,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
                     if (tasksList.length === 0) {
                       return (
-                        <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-gray-400 space-y-2">
+                        <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-gray-400 space-y-2.5 p-4">
                           <Bell size={24} className="text-gray-300 dark:text-slate-600 animate-pulse" />
-                          <p>No workflow tasks match your filters.</p>
+                          <p className="font-medium text-gray-600 dark:text-slate-400">No workflow tasks match your active filters.</p>
+                          {(filterType !== 'All' || filterStage !== 'All' || filterPriority !== 'All') && (
+                            <button
+                              onClick={() => {
+                                setFilterType('All');
+                                setFilterStage('All');
+                                setFilterPriority('All');
+                              }}
+                              className="px-3.5 py-1.5 bg-[#005BAC] hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm"
+                            >
+                              Reset Filters
+                            </button>
+                          )}
                         </div>
                       );
                     }

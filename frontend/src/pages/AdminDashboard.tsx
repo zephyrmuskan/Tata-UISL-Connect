@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   BarChart3, CheckCircle, FileText, Download, Search, 
   FolderOpen, Archive, Clock, TrendingUp, Calendar, 
   UserPlus, RefreshCw, Star, ChevronDown, ChevronUp, ChevronsUpDown, X,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Shield, Settings, Users, Key, Layers, GitBranch
 } from 'lucide-react';
 import { applicationService, authService } from '../services/api';
 import type { Application, User } from '../services/mockData';
@@ -23,7 +23,6 @@ const formatDate = (dateStr?: string) => {
 };
 
 export const AdminDashboard: React.FC = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get('tab');
   const reportType = searchParams.get('type');
@@ -266,7 +265,7 @@ export const AdminDashboard: React.FC = () => {
   });
 
   // Date Range Filter States
-  const [dateFilter, setDateFilter] = useState<'this_month' | 'last_7_days' | 'last_30_days' | 'today' | 'last_month' | 'this_year' | 'custom'>('this_year');
+  const [dateFilter, setDateFilter] = useState<'all' | 'this_month' | 'last_7_days' | 'last_30_days' | 'today' | 'last_month' | 'this_year' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
@@ -330,6 +329,8 @@ export const AdminDashboard: React.FC = () => {
 
   // 1. Date Range Filter Helper
   const getFilteredAppsByDate = () => {
+    if (dateFilter === 'all') return divisionFilteredApps;
+
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
 
@@ -1069,6 +1070,7 @@ export const AdminDashboard: React.FC = () => {
               onChange={(e: any) => setDateFilter(e.target.value)}
               className="bg-transparent border-0 outline-none font-bold text-gray-700 dark:text-gray-300 pr-4"
             >
+              <option value="all">All Time</option>
               <option value="today">Today</option>
               <option value="last_7_days">Last 7 Days</option>
               <option value="last_30_days">Last 30 Days</option>
@@ -1096,6 +1098,73 @@ export const AdminDashboard: React.FC = () => {
               />
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Enterprise System Administration Quick Launcher */}
+      <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-xs border border-gray-200 dark:border-slate-700/60 space-y-3">
+        <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-750 pb-2.5">
+          <div className="flex items-center space-x-2 text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider">
+            <Shield size={16} className="text-[#005BAC]" />
+            <span>Enterprise System Administration & Masters</span>
+          </div>
+          <span className="text-[11px] font-semibold text-[#005BAC] dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-0.5 rounded-full border border-blue-100 dark:border-blue-900/40">Super Admin Configurable</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
+          <Link 
+            to="/admin/settings?type=Page+Master"
+            className="p-3 bg-gray-50 dark:bg-slate-900/60 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 transition flex flex-col items-center text-center space-y-1.5 group"
+          >
+            <Settings size={20} className="text-tata-blue group-hover:scale-110 transition" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-tata-blue">Page Master</span>
+            <span className="text-[10px] text-gray-400 font-semibold">Menus & Methods</span>
+          </Link>
+
+          <Link 
+            to="/admin/settings?type=Role+Master"
+            className="p-3 bg-gray-50 dark:bg-slate-900/60 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 transition flex flex-col items-center text-center space-y-1.5 group"
+          >
+            <Shield size={20} className="text-purple-600 group-hover:scale-110 transition" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-purple-600">Role Master</span>
+            <span className="text-[10px] text-gray-400 font-semibold">Access Roles</span>
+          </Link>
+
+          <Link 
+            to="/admin/settings?type=Role+Mapping"
+            className="p-3 bg-gray-50 dark:bg-slate-900/60 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 transition flex flex-col items-center text-center space-y-1.5 group"
+          >
+            <Users size={20} className="text-emerald-600 group-hover:scale-110 transition" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-emerald-600">User Role Mapping</span>
+            <span className="text-[10px] text-gray-400 font-semibold">JSR / SK Areas</span>
+          </Link>
+
+          <Link 
+            to="/admin/settings?type=Menu+Rights"
+            className="p-3 bg-gray-50 dark:bg-slate-900/60 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 transition flex flex-col items-center text-center space-y-1.5 group"
+          >
+            <Key size={20} className="text-amber-600 group-hover:scale-110 transition" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-amber-600">Menu Rights</span>
+            <span className="text-[10px] text-gray-400 font-semibold">RBAC Matrix</span>
+          </Link>
+
+          <Link 
+            to="/admin/settings?type=Service+Wise+Stage+Approval+Level+Setting"
+            className="p-3 bg-gray-50 dark:bg-slate-900/60 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 transition flex flex-col items-center text-center space-y-1.5 group"
+          >
+            <Layers size={20} className="text-cyan-600 group-hover:scale-110 transition" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-cyan-600">Stage Levels</span>
+            <span className="text-[10px] text-gray-400 font-semibold">Service Approvals</span>
+          </Link>
+
+          <Link 
+            to="/admin/settings?type=Route+Master"
+            className="p-3 bg-gray-50 dark:bg-slate-900/60 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl border border-gray-200/80 dark:border-slate-700 transition flex flex-col items-center text-center space-y-1.5 group"
+          >
+            <GitBranch size={20} className="text-indigo-600 group-hover:scale-110 transition" />
+            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-indigo-600">Route Master</span>
+            <span className="text-[10px] text-gray-400 font-semibold">Workflow Sequences</span>
+          </Link>
         </div>
       </div>
 
@@ -1527,7 +1596,7 @@ export const AdminDashboard: React.FC = () => {
                     <button
                       disabled={isImporting}
                       onClick={handleImportCommit}
-                      className="px-6 py-2.5 bg-green-650 hover:bg-green-700 text-white rounded-lg font-bold shadow-md transition disabled:opacity-40"
+                      className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-md transition disabled:opacity-40"
                     >
                       {isImporting ? 'Importing Applications...' : 'Commit Import to Registry'}
                     </button>

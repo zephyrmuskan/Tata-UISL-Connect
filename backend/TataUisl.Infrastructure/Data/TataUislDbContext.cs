@@ -1,15 +1,27 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using TataUisl.Core.Entities;
 
 namespace TataUisl.Infrastructure.Data
 {
     public class TataUislDbContext : DbContext
     {
-        public TataUislDbContext(DbContextOptions<TataUislDbContext> options) : base(options)
+        private readonly IHttpContextAccessor? _httpContextAccessor;
+
+        public TataUislDbContext(DbContextOptions<TataUislDbContext> options, IHttpContextAccessor? httpContextAccessor = null) : base(options)
         {
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public DbSet<User> Users { get; set; } = null!;
+        public DbSet<UserSession> UserSessions { get; set; } = null!;
         public DbSet<Role> Roles { get; set; } = null!;
         public DbSet<Application> Applications { get; set; } = null!;
         public DbSet<ApplicationStatus> ApplicationStatuses { get; set; } = null!;
@@ -23,6 +35,11 @@ namespace TataUisl.Infrastructure.Data
         public DbSet<WorkflowStage> WorkflowStages { get; set; } = null!;
         public DbSet<OfficerAssignment> OfficerAssignments { get; set; } = null!;
         public DbSet<ApplicationWorkflow> ApplicationWorkflows { get; set; } = null!;
+        public DbSet<DocumentVerification> DocumentVerifications { get; set; } = null!;
+        public DbSet<VerificationResult> VerificationResults { get; set; } = null!;
+        public DbSet<OcrExtractedData> OcrExtractedDataRecords { get; set; } = null!;
+        public DbSet<DocumentQualityMetric> DocumentQualityMetrics { get; set; } = null!;
+        public DbSet<VerificationAuditLog> VerificationAuditLogs { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -188,6 +205,16 @@ namespace TataUisl.Infrastructure.Data
                 entity.Property(e => e.TableName).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.IpAddress).HasMaxLength(50);
                 entity.Property(e => e.UserName).HasMaxLength(100);
+                entity.Property(e => e.EmployeeId).HasMaxLength(50);
+                entity.Property(e => e.Role).HasMaxLength(50);
+                entity.Property(e => e.Module).HasMaxLength(100);
+                entity.Property(e => e.Browser).HasMaxLength(255);
+                entity.Property(e => e.OperatingSystem).HasMaxLength(100);
+                entity.Property(e => e.Device).HasMaxLength(100);
+                entity.Property(e => e.Status).HasMaxLength(50);
+                entity.Property(e => e.TicketId).HasMaxLength(100);
+                entity.Property(e => e.TicketNumber).HasMaxLength(100);
+                entity.Property(e => e.ApprovedBy).HasMaxLength(100);
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.AuditLogs)
@@ -257,6 +284,230 @@ namespace TataUisl.Infrastructure.Data
                     .HasForeignKey(d => d.ApplicationId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // UserSession configuration
+            modelBuilder.Entity<UserSession>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Role).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.IpAddress).HasMaxLength(50);
+                entity.Property(e => e.Browser).HasMaxLength(255);
+                entity.Property(e => e.OperatingSystem).HasMaxLength(100);
+                entity.Property(e => e.Device).HasMaxLength(100);
+                entity.Property(e => e.EmployeeId).HasMaxLength(50);
+
+                entity.HasOne(d => d.User)
+                    .WithMany()
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var auditEntries = OnBeforeSaveChanges();
+            var result = await base.SaveChangesAsync(cancellationToken);
+            await OnAfterSaveChanges(auditEntries);
+            return result;
+        }
+
+        private List<AuditEntry> OnBeforeSaveChanges()
+        {
+            ChangeTracker.DetectChanges();
+            var auditEntries = new List<AuditEntry>();
+
+            int? userId = null;
+            string userName = "System";
+            string? employeeId = null;
+            string? role = null;
+            string? ipAddress = "127.0.0.1";
+            string? browser = null;
+            string? os = null;
+            string? device = null;
+            string? ticketId = null;
+            string? ticketNumber = null;
+            string? approvedBy = null;
+
+            if (_httpContextAccessor?.HttpContext != null)
+            {
+                var httpContext = _httpContextAccessor.HttpContext;
+                var userClaims = httpContext.User;
+                if (userClaims?.Identity?.IsAuthenticated == true)
+                {
+                    var userIdClaim = userClaims.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                    if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int id))
+                    {
+                        userId = id;
+                    }
+                    userName = userClaims.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? userClaims.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "System";
+                    employeeId = userClaims.FindFirst("EmployeeId")?.Value;
+                    role = userClaims.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                }
+
+                ipAddress = httpContext.Connection?.RemoteIpAddress?.ToString();
+                var userAgent = httpContext.Request?.Headers["User-Agent"].ToString() ?? "";
+
+                if (userAgent.Contains("Windows")) os = "Windows";
+                else if (userAgent.Contains("Macintosh") || userAgent.Contains("Mac OS")) os = "macOS";
+                else if (userAgent.Contains("Android")) os = "Android";
+                else if (userAgent.Contains("iPhone") || userAgent.Contains("iPad")) os = "iOS";
+                else if (userAgent.Contains("Linux")) os = "Linux";
+                else os = "Unknown OS";
+
+                if (userAgent.Contains("Firefox")) browser = "Firefox";
+                else if (userAgent.Contains("Chrome")) browser = "Chrome";
+                else if (userAgent.Contains("Safari") && !userAgent.Contains("Chrome")) browser = "Safari";
+                else if (userAgent.Contains("Edge")) browser = "Edge";
+                else browser = "Unknown Browser";
+
+                device = userAgent.Contains("Mobile") ? "Mobile" : "Desktop";
+
+                ticketId = httpContext.Request?.Headers["X-Ticket-ID"];
+                ticketNumber = httpContext.Request?.Headers["X-Ticket-Number"];
+                approvedBy = httpContext.Request?.Headers["X-Approved-By"];
+            }
+
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                if (entry.Entity is AuditLog || entry.Entity is UserSession || entry.State == EntityState.Detached || entry.State == EntityState.Unchanged)
+                    continue;
+
+                var auditEntry = new AuditEntry(entry)
+                {
+                    UserId = userId,
+                    UserName = userName,
+                    EmployeeId = employeeId,
+                    Role = role,
+                    IpAddress = ipAddress ?? "127.0.0.1",
+                    Browser = browser,
+                    OperatingSystem = os,
+                    Device = device,
+                    TicketId = ticketId,
+                    TicketNumber = ticketNumber,
+                    ApprovedBy = approvedBy,
+                    Timestamp = DateTime.UtcNow
+                };
+                auditEntries.Add(auditEntry);
+
+                foreach (var property in entry.Properties)
+                {
+                    string propertyName = property.Metadata.Name;
+                    if (property.Metadata.IsPrimaryKey())
+                    {
+                        auditEntry.KeyValues[propertyName] = property.CurrentValue;
+                        continue;
+                    }
+
+                    switch (entry.State)
+                    {
+                        case EntityState.Added:
+                            auditEntry.AuditType = "Insert";
+                            auditEntry.NewValues[propertyName] = property.CurrentValue;
+                            break;
+
+                        case EntityState.Deleted:
+                            auditEntry.AuditType = "Delete";
+                            auditEntry.OldValues[propertyName] = property.OriginalValue;
+                            break;
+
+                        case EntityState.Modified:
+                            if (property.IsModified)
+                            {
+                                auditEntry.AuditType = "Update";
+                                auditEntry.OldValues[propertyName] = property.OriginalValue;
+                                auditEntry.NewValues[propertyName] = property.CurrentValue;
+                            }
+                            break;
+                    }
+                }
+            }
+
+            foreach (var auditEntry in auditEntries)
+            {
+                AuditLogs.Add(auditEntry.ToAuditLog());
+            }
+
+            return auditEntries;
+        }
+
+        private Task OnAfterSaveChanges(List<AuditEntry> auditEntries)
+        {
+            if (auditEntries == null || auditEntries.Count == 0)
+                return Task.CompletedTask;
+
+            foreach (var entry in auditEntries)
+            {
+                if (entry.AuditType == "Insert")
+                {
+                    foreach (var prop in entry.Entry.Properties)
+                    {
+                        if (prop.Metadata.IsPrimaryKey())
+                        {
+                            entry.KeyValues[prop.Metadata.Name] = prop.CurrentValue;
+                        }
+                    }
+                    var matchingLog = AuditLogs.Local.FirstOrDefault(l => l.Timestamp == entry.Timestamp && l.TableName == entry.TableName && l.RecordId == null);
+                    if (matchingLog != null)
+                    {
+                        matchingLog.RecordId = string.Join(",", entry.KeyValues.Values);
+                    }
+                }
+            }
+            return base.SaveChangesAsync();
+        }
+    }
+
+    public class AuditEntry
+    {
+        public AuditEntry(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+        {
+            Entry = entry;
+        }
+
+        public Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Entry { get; }
+        public int? UserId { get; set; }
+        public string? EmployeeId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string? Role { get; set; }
+        public string AuditType { get; set; } = string.Empty;
+        public string TableName => Entry.Metadata.ClrType.Name;
+        public DateTime Timestamp { get; set; }
+        public string IpAddress { get; set; } = string.Empty;
+        public string? Browser { get; set; }
+        public string? OperatingSystem { get; set; }
+        public string? Device { get; set; }
+        public string? TicketId { get; set; }
+        public string? TicketNumber { get; set; }
+        public string? ApprovedBy { get; set; }
+        public Dictionary<string, object?> KeyValues { get; } = new();
+        public Dictionary<string, object?> OldValues { get; } = new();
+        public Dictionary<string, object?> NewValues { get; } = new();
+
+        public AuditLog ToAuditLog()
+        {
+            return new AuditLog
+            {
+                UserId = UserId,
+                EmployeeId = EmployeeId,
+                UserName = UserName,
+                Role = Role,
+                Module = TableName,
+                Action = AuditType,
+                TableName = TableName,
+                RecordId = KeyValues.Count > 0 ? string.Join(",", KeyValues.Values) : null,
+                Timestamp = Timestamp,
+                IpAddress = IpAddress,
+                Browser = Browser,
+                OperatingSystem = OperatingSystem,
+                Device = Device,
+                Status = "Success",
+                TicketId = TicketId,
+                TicketNumber = TicketNumber,
+                ApprovedBy = ApprovedBy,
+                BeforeJson = OldValues.Count > 0 ? JsonSerializer.Serialize(OldValues) : null,
+                AfterJson = NewValues.Count > 0 ? JsonSerializer.Serialize(NewValues) : null,
+                Details = $"{AuditType} operation on {TableName}"
+            };
         }
     }
 }

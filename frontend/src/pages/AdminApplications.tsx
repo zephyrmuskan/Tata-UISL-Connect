@@ -3,12 +3,16 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Search, Download, FileText, Check, X, Eye, 
   ChevronDown, ChevronUp, ChevronsUpDown, Printer, FileEdit,
-  ChevronLeft, ChevronRight
+  AlertTriangle, XCircle, CheckCircle2, MapPin, ArrowRight, Upload,
+  FolderOpen, History, ClipboardCheck, ShieldCheck, CheckSquare, Calculator,
+  Receipt, CreditCard, Briefcase, Cpu, Zap, MessageSquare
 } from 'lucide-react';
 import { applicationService, documentService } from '../services/api';
 import type { Application, ApplicationDocument } from '../services/mockData';
 import { toast } from 'react-toastify';
 import { WorkflowModal } from '../components/WorkflowModal';
+import { DocumentVerificationView } from '../components/DocumentVerificationView';
+import { TataWorkflowTimeline } from '../components/TataWorkflowTimeline';
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return 'N/A';
   const date = new Date(dateStr);
@@ -59,7 +63,7 @@ const mapSidebarTypeToDbValue = (sidebarType: string): string => {
 export const AdminApplications: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [selectedReceiptAppId, setSelectedReceiptAppId] = useState<number>(1);
+  const [selectedReceiptAppId, setSelectedReceiptAppId] = useState<string | number>('1');
   const [energizationDivision, setEnergizationDivision] = useState<'Electricity' | 'Water'>('Electricity');
   const [moveInDivision, setMoveInDivision] = useState<'Electricity' | 'Water'>('Electricity');
   const [rfcTrDivision, setRfcTrDivision] = useState<'Electricity' | 'Water'>('Electricity');
@@ -243,11 +247,69 @@ export const AdminApplications: React.FC = () => {
     };
   };
 
-  const [applications, setApplications] = useState<Application[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Revoke Modal State
+  const [revokeModalOpen, setRevokeModalOpen] = useState(false);
+  const [revokeApp, setRevokeApp] = useState<Application | null>(null);
+  const [revokeStage, setRevokeStage] = useState('Land Survey Details');
+  const [revokeTo, setRevokeTo] = useState('Officer 1 - Verification');
+  const [revokeDate, setRevokeDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [revokeRemarks, setRevokeRemarks] = useState('');
+  const [openStageRow, setOpenStageRow] = useState<number | null>(0);
+
+  const handleRevokeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!revokeApp) return;
+
+    // Update application stage in memory if matches selectedApp
+    setApplications(prev => prev.map(a => {
+      if (a.id === revokeApp.id) {
+        return {
+          ...a,
+          currentStage: revokeStage,
+          currentStatus: 'InProgress'
+        };
+      }
+      return a;
+    }));
+
+    if (selectedApp && selectedApp.id === revokeApp.id) {
+      setSelectedApp({
+        ...selectedApp,
+        currentStage: revokeStage,
+        currentStatus: 'InProgress'
+      });
+    }
+
+    toast.success('Application request revoked successfully.');
+    setRevokeModalOpen(false);
+    setRevokeRemarks('');
+  };
+
+  // Application History accordion states
+  const [histAppDetailsOpen, setHistAppDetailsOpen] = useState(true);
+  const [histVerificationOpen, setHistVerificationOpen] = useState(true);
+  const [histSurveyOpen, setHistSurveyOpen] = useState(true);
+  const [histSurveyApprovalOpen, setHistSurveyApprovalOpen] = useState(true);
+  const [histEstimateOpen, setHistEstimateOpen] = useState(true);
+  const [histEstimateApprovalOpen, setHistEstimateApprovalOpen] = useState(true);
+  const [histDemandNoteOpen, setHistDemandNoteOpen] = useState(true);
+  const [histDemandCollectionOpen, setHistDemandCollectionOpen] = useState(true);
+  const [histJobAllotmentOpen, setHistJobAllotmentOpen] = useState(true);
+  const [histRfcTrOpen, setHistRfcTrOpen] = useState(true);
+  const [histEnergizationOpen, setHistEnergizationOpen] = useState(true);
+  const [histAdditionalCommentOpen, setHistAdditionalCommentOpen] = useState(true);
+
+  const [verifEntriesSize, setVerifEntriesSize] = useState(10);
+  const [verifSearchQuery, setVerifSearchQuery] = useState('');
+  const [surveyEntriesSize, setSurveyEntriesSize] = useState(10);
+  const [surveySearchQuery, setSurveySearchQuery] = useState('');
 
   // Provisional Connection division state (Electricity vs Water)
   const [provisionalDivision, setProvisionalDivision] = useState<'Electricity' | 'Water'>('Electricity');
@@ -353,7 +415,7 @@ export const AdminApplications: React.FC = () => {
   // Reassignment & workflow remarks states inside drawer
   const [officerName, setOfficerName] = useState('');
   const [statusRemarks, setStatusRemarks] = useState('');
-  const [drawerTab, setDrawerTab] = useState<'Overview' | 'Timeline' | 'Audit' | 'Documents'>('Overview');
+  const [drawerTab, setDrawerTab] = useState<'Overview' | 'History' | 'Timeline' | 'Audit' | 'Documents'>('Overview');
 
   // Rejection & Preview file states
   const [rejectingDocId, setRejectingDocId] = useState<string | null>(null);
@@ -365,14 +427,25 @@ export const AdminApplications: React.FC = () => {
       const apps = await applicationService.getApplications();
       setApplications(apps);
 
-      // Check URL query parameters for selected application id
+      // Check URL query parameters for selected application id or open verification action
       const queryId = searchParams.get('id');
+      const openVer = searchParams.get('openVerification') === 'true';
       if (queryId) {
         const found = apps.find(a => a.id === queryId);
         if (found) {
           setSelectedApp(found);
           setOfficerName(found.assignedOfficer);
           setDrawerOpen(true);
+          if (openVer) setShowVerificationModal(true);
+        }
+      } else if (openVer || searchParams.get('stage') === 'Document Verification') {
+        if (apps.length > 0) {
+          const docVerApp = apps.find(a => a.currentStage === 'Document Verification') || apps[0];
+          if (docVerApp) {
+            setSelectedApp(docVerApp);
+            setOfficerName(docVerApp.assignedOfficer);
+            setShowVerificationModal(true);
+          }
         }
       }
     } catch (err) {
@@ -573,15 +646,23 @@ export const AdminApplications: React.FC = () => {
           return energyMeterTestingDivision === 'Water' ? isWater : !isWater;
         });
       } else if (typeParam === 'Regretted Applications' || typeParam === 'Hold Applications' || typeParam === 'Archived Application') {
-        const dbStatus = typeParam === 'Regretted Applications' ? 'regretted' : typeParam === 'Hold Applications' ? 'hold' : 'archived';
         result = result.filter(a => {
           const name = (a.connectionTypeName || '').toLowerCase();
           const cat = (a.connectionCategory || '').toLowerCase();
           const typeName = (a.applicationType || '').toLowerCase();
-          
-          const matchesStatus = (a.currentStatus || '').toLowerCase() === dbStatus;
+          const status = (a.currentStatus || '').toLowerCase();
+
+          let matchesStatus = false;
+          if (typeParam === 'Regretted Applications') {
+            matchesStatus = status.includes('regretted') || status.includes('rejected') || status.includes('returned');
+          } else if (typeParam === 'Hold Applications') {
+            matchesStatus = status.includes('hold') || status.includes('pending') || status.includes('under verification');
+          } else if (typeParam === 'Archived Application') {
+            matchesStatus = status.includes('archived') || status.includes('completed');
+          }
+
           if (!matchesStatus) return false;
-          
+
           const isWater = name.includes('water') || cat.includes('water') || typeName.includes('water');
           return regrettedDivision === 'Water' ? isWater : !isWater;
         });
@@ -1058,11 +1139,6 @@ export const AdminApplications: React.FC = () => {
     return { name: officerName, empId: 'EMP1003422', dept: 'Tata Desk Operations' };
   };
 
-  const allStages = [
-    'Application Verification', 'Document Verification', 'Load Survey', 'Land Survey',
-    'Bill Verification', 'Estimate Details', 'Estimate Approval', 'Demand Note',
-    'Connection Approval', 'Job Allotment', 'RFC Entry', 'Energization', 'Move-In', 'Completed'
-  ];
 
   const renderMaterialMaster = () => {
     const filtered = materials.filter(m => {
@@ -1883,7 +1959,7 @@ export const AdminApplications: React.FC = () => {
   };
 
   const renderMoneyReceipt = () => {
-    const selectedApp = applications.find(a => a.id === selectedReceiptAppId) || applications[0] || {
+    const selectedApp: any = applications.find(a => a.id.toString() === selectedReceiptAppId.toString()) || applications[0] || {
       id: 1,
       applicationNo: 'APP72619',
       fullName: 'Abhishek Roy',
@@ -1900,11 +1976,11 @@ export const AdminApplications: React.FC = () => {
     const chequeNo = 'N/A';
     const chequeAmount = '-';
     const chequeDate = 'N/A';
-    const appNo = selectedApp.applicationNo || 'N/A';
+    const appNo = selectedApp.applicationNo || selectedApp.applicationNumber || 'N/A';
     const bpNo = `BP-83${selectedApp.id}91`;
     const consumerNo = `CON-92${selectedApp.id}48`;
     
-    const loadVal = selectedApp.appliedLoad || 2;
+    const loadVal = selectedApp.appliedLoad || parseFloat(selectedApp.loadRequirement || '2') || 2;
     const installationCharges = 1500.00;
     const serviceCharges = 250.00;
     const educationCess = 30.00;
@@ -1922,7 +1998,7 @@ export const AdminApplications: React.FC = () => {
     const dnAmount = totalAmount.toFixed(2);
     const dnNo = `DN-2026-${selectedApp.id}12`;
     const dnDate = selectedApp.submittedDate ? new Date(selectedApp.submittedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-') : '23-Dec-2022';
-    const contactNo = selectedApp.mobileNumber || 'N/A';
+    const contactNo = selectedApp.mobileNumber || selectedApp.customerMobile || 'N/A';
     const sanctionLoad = `${loadVal} KW`;
 
     return (
@@ -1939,7 +2015,7 @@ export const AdminApplications: React.FC = () => {
             </div>
             <select
               value={selectedReceiptAppId}
-              onChange={(e) => setSelectedReceiptAppId(parseInt(e.target.value))}
+              onChange={(e) => setSelectedReceiptAppId(e.target.value)}
               className="appearance-none bg-white dark:bg-slate-900 border border-[#e5e7eb] dark:border-slate-700 rounded-lg pl-3 pr-10 py-2 text-xs font-bold text-gray-800 dark:text-white cursor-pointer focus:outline-none focus:border-[#4B3E9E] shadow-sm sm:w-72"
             >
               {applications.map(a => (
@@ -2508,6 +2584,25 @@ export const AdminApplications: React.FC = () => {
   return (
     <div className="space-y-6 text-left relative min-h-[85vh] max-w-[1700px] mx-auto">
       
+      {/* Global Header Banner for Create New Request */}
+      {!searchParams.get('type') && (
+        <div className="bg-white dark:bg-slate-850 p-5 rounded-3xl border border-gray-200 dark:border-slate-750 shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fadeIn">
+          <div>
+            <h2 className="text-base font-extrabold text-gray-900 dark:text-white">Connection Applications & Service Queue</h2>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Manage customer connection requests, verification workflow, and stage signoffs.</p>
+          </div>
+          <button
+            onClick={() => {
+              setCustomerConnectionType('Electricity');
+              setCustomerModalOpen(true);
+            }}
+            className="px-6 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center space-x-2 cursor-pointer"
+          >
+            <span>+ Create New Request</span>
+          </button>
+        </div>
+      )}
+
       {/* Provisional Connection Header Card */}
       {searchParams.get('type') === 'Provisional Connection' && (
         <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-150 dark:border-slate-700/50 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fadeIn">
@@ -2535,9 +2630,9 @@ export const AdminApplications: React.FC = () => {
           
           <button
             onClick={() => navigate(`/customer/apply?type=provisional&division=${provisionalDivision}`)}
-            className="px-5 py-2.5 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-xs font-bold rounded-full shadow transition"
+            className="px-6 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
           >
-            Create New Request
+            + Create New Request
           </button>
         </div>
       )}
@@ -3459,9 +3554,10 @@ export const AdminApplications: React.FC = () => {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      toast.success('Application request revoked successfully.');
+                                      setRevokeApp(app);
+                                      setRevokeModalOpen(true);
                                     }}
-                                    className="px-5 py-2 bg-[#0275D8] hover:bg-blue-600 text-white font-bold rounded-full text-xs transition duration-200 shadow-sm"
+                                    className="px-5 py-2 bg-[#0275D8] hover:bg-blue-600 text-white font-bold rounded-full text-xs transition duration-200 shadow-sm cursor-pointer"
                                   >
                                     Revoke
                                   </button>
@@ -3496,7 +3592,7 @@ export const AdminApplications: React.FC = () => {
                                     onClick={() => {
                                       setSelectedApp(app);
                                       setDrawerOpen(true);
-                                      setDrawerTab('Timeline');
+                                      setDrawerTab('History');
                                     }}
                                     className="px-5 py-2 bg-[#5CB85C] hover:bg-green-600 text-white font-bold rounded-full text-xs transition duration-200 shadow-sm"
                                   >
@@ -3717,6 +3813,16 @@ export const AdminApplications: React.FC = () => {
                                 <div className="flex flex-col space-y-2 justify-center min-w-[180px]">
                                   <button 
                                     onClick={() => {
+                                      setRevokeApp(app);
+                                      setRevokeModalOpen(true);
+                                    }}
+                                    className="bg-[#005BAC] hover:bg-blue-700 text-white font-extrabold py-2 px-6 rounded-full text-xs transition duration-200 shadow-sm cursor-pointer"
+                                  >
+                                    Revoke
+                                  </button>
+
+                                  <button 
+                                    onClick={() => {
                                       setSelectedApp(app);
                                       setDrawerOpen(true);
                                       setDrawerTab('Timeline');
@@ -3805,20 +3911,35 @@ export const AdminApplications: React.FC = () => {
                 <span className="text-xs uppercase font-black text-blue-100 tracking-wider">Application Desk Audit</span>
                 <h3 className="text-sm font-extrabold leading-none">{selectedApp.applicationNumber}</h3>
               </div>
-              <button onClick={() => setDrawerOpen(false)} className="text-white/80 hover:text-white p-1 hover:bg-white/10 rounded-full transition">
-                <X size={18} />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowVerificationModal(true)}
+                  className="px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-lg text-xs font-bold flex items-center space-x-1 transition shadow-sm"
+                  title="Launch Smart Document Verification Engine"
+                >
+                  <span>Verify Documents</span>
+                </button>
+                <button onClick={() => setDrawerOpen(false)} className="text-white/80 hover:text-white p-1 hover:bg-white/10 rounded-full transition">
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Tab controls */}
             <div className="flex border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-400 bg-gray-50/50 dark:bg-slate-900/10">
-              {['Overview', 'Timeline', 'Audit', 'Documents'].map((tab: any) => (
+              {['Overview', 'History', 'Timeline', 'Audit', 'Documents', 'Document Verification'].map((tab: any) => (
                 <button
                   key={tab}
-                  onClick={() => setDrawerTab(tab)}
+                  onClick={() => {
+                    if (tab === 'Document Verification') {
+                      setShowVerificationModal(true);
+                    } else {
+                      setDrawerTab(tab);
+                    }
+                  }}
                   className={`flex-1 py-3 text-center border-b-2 transition ${
                     drawerTab === tab 
-                      ? 'border-[#005BAC] text-[#005BAC] dark:text-tata-blue-light bg-white dark:bg-slate-800' 
+                      ? 'border-[#005BAC] text-[#005BAC] dark:text-tata-blue-light bg-white dark:bg-slate-800 font-extrabold' 
                       : 'border-transparent hover:text-gray-600 dark:hover:text-white'
                   }`}
                 >
@@ -3875,55 +3996,61 @@ export const AdminApplications: React.FC = () => {
                       <select 
                         value={officerName}
                         onChange={(e) => setOfficerName(e.target.value)}
-                        className="flex-1 p-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none font-semibold text-gray-700 dark:text-white"
+                        className="flex-1 p-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl outline-none font-bold text-xs text-gray-800 dark:text-white"
                       >
                         <option value="">Select Officer...</option>
-                        <option value="Officer 1 - Doc Verifier">Officer 1 - Doc Verifier</option>
-                        <option value="Officer 2 - Tech Surveyor">Officer 2 - Tech Surveyor</option>
-                        <option value="Officer 3 - Approval Officer">Officer 3 - Approval Officer</option>
+                        <option value="Officer 1 - Doc Verifier">Suresh Verma (Field Inspector)</option>
+                        <option value="Officer 2 - Tech Surveyor">Ramesh Kumar (Verification Officer)</option>
+                        <option value="Officer 3 - Approval Officer">Priya Sharma (Divisional Manager)</option>
                       </select>
                       <button 
+                        type="button"
                         onClick={handleReassignOfficer}
-                        className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white font-bold rounded-lg transition"
+                        className="px-4 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
                       >
                         Reassign
                       </button>
                     </div>
                   </div>
 
-                  {/* Actions Transition Controls */}
-                  <div className="p-4 bg-white dark:bg-slate-800 border border-gray-150 dark:border-slate-700/60 rounded-xl space-y-4">
-                    <h4 className="font-extrabold text-gray-900 dark:text-white uppercase tracking-wider text-[10px]">Verification Action Controls</h4>
+                  {/* Action Bar */}
+                  <div className="p-4 bg-[#005BAC]/5 dark:bg-[#005BAC]/10 border border-[#005BAC]/20 rounded-2xl space-y-3">
+                    <h4 className="font-bold text-[#005BAC] text-xs">Stage Decision & Approval Workflow</h4>
                     
-                    <div className="space-y-2">
-                      <label className="block text-[10px] text-gray-400 font-bold">WORKFLOW REMARKS / INSTRUCTIONS</label>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-gray-500">Remarks / Approval Notes</label>
                       <textarea
-                        rows={3}
-                        placeholder="Specify survey report notes, document validation errors, or approval parameters..."
+                        rows={2}
+                        placeholder="Enter notes for audit trail..."
                         value={statusRemarks}
                         onChange={(e) => setStatusRemarks(e.target.value)}
                         className="w-full p-3 bg-gray-50 dark:bg-slate-750 border border-gray-200 dark:border-slate-650 rounded-lg outline-none font-semibold text-gray-750 dark:text-gray-250"
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-3 pt-1">
                       <button
                         onClick={() => handleTransitionWorkflow('Correction')}
-                        className="py-2.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-750 dark:bg-yellow-950/20 dark:text-yellow-400 font-bold rounded-lg border border-yellow-200 dark:border-yellow-900/50 text-center transition"
+                        className="py-3 px-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm hover:shadow-md cursor-pointer"
                       >
-                        Request Correction
+                        <AlertTriangle size={15} />
+                        <span>Request Correction</span>
                       </button>
+
                       <button
                         onClick={() => handleTransitionWorkflow('Reject')}
-                        className="py-2.5 bg-red-50 hover:bg-red-100 text-red-750 dark:bg-red-950/20 dark:text-red-400 font-bold rounded-lg border border-red-200 dark:border-red-900/50 text-center transition"
+                        className="py-3 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm hover:shadow-md cursor-pointer"
                       >
-                        Reject Request
+                        <XCircle size={15} />
+                        <span>Reject Request</span>
                       </button>
+
                       <button
                         onClick={() => setWorkflowModalOpen(true)}
-                        className="py-2.5 bg-green-650 hover:bg-green-700 text-white font-bold rounded-lg text-center transition shadow"
+                        className="py-3 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm hover:shadow-md cursor-pointer"
                       >
-                        Approve Stage
+                        <CheckCircle2 size={15} />
+                        <span>Approve Stage</span>
                       </button>
                     </div>
                   </div>
@@ -3931,51 +4058,1132 @@ export const AdminApplications: React.FC = () => {
                 </div>
               )}
 
-              {/* Tab 2: TIMELINE TRACKER */}
-              {drawerTab === 'Timeline' && (
-                <div className="space-y-6 text-left">
-                  <h4 className="font-extrabold text-gray-900 dark:text-white uppercase tracking-wider text-[10px]">Sequential Connection Roadmap</h4>
+              {/* Tab 1.5: APPLICATION HISTORY ACCORDION VIEW (TATA UISL ENTERPRISE DESIGN SYSTEM) */}
+              {drawerTab === 'History' && (
+                <div className="space-y-5 text-xs text-left animate-fadeIn">
                   
-                  <div className="relative border-l-2 border-gray-200 dark:border-slate-700 ml-3 space-y-6 py-2 text-xs">
-                    {allStages.map((stageName, sIdx) => {
-                      const isHistoryFound = selectedApp.statusHistory?.some(h => h.stage === stageName);
-                      const isCurrent = selectedApp.currentStage === stageName;
-                      const isCorrection = isCurrent && selectedApp.currentStatus === 'Correction Required';
+                  {/* Top Banner Card with Tata Corporate Accent Line & Quick Info */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 border-t-4 border-t-[#005BAC] shadow-sm p-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 dark:border-slate-800 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#005BAC] text-white flex items-center justify-center shadow-xs shrink-0">
+                          <History size={20} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span>Tata UISL Application Audit & Lifecycle History</span>
+                          </h3>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                            Complete stage logs & verified transaction records for App #{selectedApp.applicationNumber}
+                          </p>
+                        </div>
+                      </div>
 
-                      let nodeColor = 'bg-gray-200 dark:bg-slate-700 text-gray-400';
-                      let labelColor = 'text-gray-400';
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="px-3.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-[11px] rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5 shadow-2xs">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          {selectedApp.currentStage || selectedApp.currentStatus || 'Verified Stage'}
+                        </span>
+                      </div>
+                    </div>
 
-                      if (isHistoryFound && !isCurrent) {
-                        nodeColor = 'bg-green-500 text-white';
-                        labelColor = 'text-green-600 dark:text-green-400 font-bold';
-                      } else if (isCurrent) {
-                        if (isCorrection) {
-                          nodeColor = 'bg-yellow-500 text-white animate-pulse';
-                          labelColor = 'text-yellow-600 dark:text-yellow-400 font-bold';
-                        } else {
-                          nodeColor = 'bg-blue-500 text-white animate-pulse';
-                          labelColor = 'text-tata-blue dark:text-tata-blue-light font-bold';
-                        }
-                      }
+                    {/* Applicant Quick Info Summary Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] pt-1">
+                      <div className="bg-gray-50/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-gray-150 dark:border-slate-750">
+                        <span className="text-gray-400 dark:text-gray-500 font-medium block text-[10px] uppercase tracking-wider">Applicant Name</span>
+                        <span className="font-extrabold text-gray-800 dark:text-white truncate block mt-0.5">{selectedApp.fullName || selectedApp.customerName || 'N/A'}</span>
+                      </div>
+                      <div className="bg-gray-50/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-gray-150 dark:border-slate-750">
+                        <span className="text-gray-400 dark:text-gray-500 font-medium block text-[10px] uppercase tracking-wider">Mobile Number</span>
+                        <span className="font-bold text-gray-800 dark:text-white font-mono block mt-0.5">{selectedApp.customerMobile || '8271039154'}</span>
+                      </div>
+                      <div className="bg-gray-50/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-gray-150 dark:border-slate-750">
+                        <span className="text-gray-400 dark:text-gray-500 font-medium block text-[10px] uppercase tracking-wider">Category / Supply</span>
+                        <span className="font-bold text-gray-800 dark:text-white block mt-0.5">{selectedApp.connectionCategory || selectedApp.applicationType || 'Commercial (230V)'}</span>
+                      </div>
+                      <div className="bg-gray-50/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-gray-150 dark:border-slate-750">
+                        <span className="text-gray-400 dark:text-gray-500 font-medium block text-[10px] uppercase tracking-wider">Division / Circle</span>
+                        <span className="font-bold text-[#005BAC] dark:text-blue-400 block mt-0.5">{selectedApp.city || 'ADITYAPUR'}, {selectedApp.district || 'SERAIKELA'}</span>
+                      </div>
+                    </div>
+                  </div>
 
-                      return (
-                        <div key={stageName} className="relative pl-6 flex items-start">
-                          <span className={`absolute -left-[9px] top-0.5 h-4.5 w-4.5 rounded-full flex items-center justify-center text-[9px] font-extrabold shadow ${nodeColor}`}>
-                            {isHistoryFound && !isCurrent ? '✓' : sIdx + 1}
-                          </span>
-                          <div>
-                            <p className={`${labelColor}`}>{stageName}</p>
-                            {isCurrent && (
-                              <p className="text-[10px] text-gray-455 italic mt-0.5">
-                                {isCorrection ? 'Status: Correction Required by customer' : `Assigned officer: ${selectedApp.assignedOfficer}`}
-                              </p>
-                            )}
+                  {/* STAGE AUDIT LOG TABLE (EXACT MATCH TO REFERENCE SCREENSHOT) */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider">
+                          <tr>
+                            <th className="py-3 px-4 w-1/4">STAGE</th>
+                            <th className="py-3 px-4 w-1/3">UPDATED BY</th>
+                            <th className="py-3 px-4 w-1/5">UPDATED ON</th>
+                            <th className="py-3 px-4 text-right pr-6">ACTION</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-slate-750">
+                          {[
+                            { stage: 'Job Allotment', updatedBy: 'Abhishek [8271039154]', updatedOn: '-' },
+                            { stage: 'Energization', updatedBy: 'Abhishek [8271039154]', updatedOn: '-' },
+                            { stage: 'Job Allotment', updatedBy: 'Abhishek [8271039154]', updatedOn: '-' },
+                            { stage: 'Bill Verification', updatedBy: 'Abhishek [8271039154]', updatedOn: '-' },
+                            { stage: 'Bill Verification', updatedBy: 'Abhishek [8271039154]', updatedOn: '-' }
+                          ].map((stg, index) => {
+                            const isOpen = openStageRow === index;
+                            return (
+                              <React.Fragment key={index}>
+                                <tr 
+                                  onClick={() => setOpenStageRow(prev => prev === index ? null : index)}
+                                  className="hover:bg-blue-50/50 dark:hover:bg-slate-800/50 transition cursor-pointer font-bold text-gray-800 dark:text-white"
+                                >
+                                  <td className="py-3.5 px-4 font-extrabold text-gray-900 dark:text-white">{stg.stage}</td>
+                                  <td className="py-3.5 px-4 text-gray-700 dark:text-gray-300 font-semibold">{stg.updatedBy}</td>
+                                  <td className="py-3.5 px-4 text-gray-400 font-medium">{stg.updatedOn}</td>
+                                  <td className="py-3.5 px-4 text-right pr-6">
+                                    {isOpen ? (
+                                      <ChevronUp size={16} className="inline text-gray-500" />
+                                    ) : (
+                                      <ChevronDown size={16} className="inline text-gray-500" />
+                                    )}
+                                  </td>
+                                </tr>
+
+                                {isOpen && (
+                                  <tr className="bg-gray-50/60 dark:bg-slate-900/60">
+                                    <td colSpan={4} className="p-4 border-t border-gray-100 dark:border-slate-800">
+                                      <div className="space-y-4">
+                                        {/* Action Pills Row matching reference image */}
+                                        <div className="flex flex-wrap items-center gap-3">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setRevokeApp(selectedApp);
+                                              setRevokeModalOpen(true);
+                                            }}
+                                            className="px-6 py-2 bg-[#0275D8] hover:bg-blue-700 text-white font-extrabold text-xs rounded-full shadow-xs transition cursor-pointer"
+                                          >
+                                            Revoke
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handlePrintAppInvoice(selectedApp);
+                                            }}
+                                            className="px-6 py-2 bg-[#8A95A5] hover:bg-slate-600 text-white font-extrabold text-xs rounded-full shadow-xs transition cursor-pointer"
+                                          >
+                                            ViewLetter
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setFeedbackApp(selectedApp);
+                                              setFeedbackModalOpen(true);
+                                              setFeedbackComment('');
+                                              setFeedbackFile(null);
+                                            }}
+                                            className="px-6 py-2 bg-[#FFC107] hover:bg-amber-500 text-gray-900 font-extrabold text-xs rounded-full shadow-xs transition cursor-pointer"
+                                          >
+                                            Feedback
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setDrawerTab('Timeline');
+                                            }}
+                                            className="px-6 py-2 bg-[#5CB85C] hover:bg-emerald-600 text-white font-extrabold text-xs rounded-full shadow-xs transition cursor-pointer"
+                                          >
+                                            History
+                                          </button>
+                                        </div>
+
+                                        {/* Application Details Summary */}
+                                        <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-gray-200/80 dark:border-slate-750 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+                                          <div>
+                                            <span className="text-gray-400 text-[10px] font-bold uppercase block">Application No</span>
+                                            <span className="font-extrabold text-gray-900 dark:text-white font-mono block mt-0.5">{selectedApp.applicationNumber}</span>
+                                          </div>
+                                          <div>
+                                            <span className="text-gray-400 text-[10px] font-bold uppercase block">Applicant</span>
+                                            <span className="font-extrabold text-gray-900 dark:text-white block mt-0.5">{selectedApp.fullName || selectedApp.customerName}</span>
+                                          </div>
+                                          <div>
+                                            <span className="text-gray-400 text-[10px] font-bold uppercase block">Connection Type</span>
+                                            <span className="font-bold text-gray-800 dark:text-gray-200 block mt-0.5">{selectedApp.connectionCategory || selectedApp.applicationType || 'Commercial'}</span>
+                                          </div>
+                                          <div>
+                                            <span className="text-gray-400 text-[10px] font-bold uppercase block">Stage Status</span>
+                                            <span className="font-extrabold text-emerald-600 dark:text-emerald-400 block mt-0.5">{stg.stage}</span>
+                                          </div>
+                                        </div>
+
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Accordion 1: Application Details */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistAppDetailsOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#005BAC] dark:text-blue-400">
+                          <FileText size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Application Details</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-[#005BAC] dark:text-blue-300 font-bold bg-blue-50 dark:bg-blue-950/80 px-2.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-900">1 item</span>
+                        {histAppDetailsOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histAppDetailsOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 bg-white dark:bg-slate-850 space-y-4">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRevokeApp(selectedApp);
+                              setRevokeModalOpen(true);
+                            }}
+                            className="px-5 py-2 bg-[#0275D8] hover:bg-blue-700 text-white font-extrabold text-xs rounded-full shadow-xs transition cursor-pointer"
+                          >
+                            Revoke
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setDrawerTab('Overview')}
+                            className="px-5 py-2 bg-[#005BAC] hover:bg-blue-800 text-white font-extrabold text-xs rounded-full shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+                          >
+                            <Eye size={13} />
+                            <span>View Application</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handlePrintAppInvoice(selectedApp)}
+                            className="px-5 py-2 bg-[#8A95A5] hover:bg-slate-600 text-white font-extrabold text-xs rounded-full shadow-xs transition cursor-pointer"
+                          >
+                            ViewLetter
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFeedbackApp(selectedApp);
+                              setFeedbackModalOpen(true);
+                              setFeedbackComment('');
+                              setFeedbackFile(null);
+                            }}
+                            className="px-5 py-2 bg-[#FFC107] hover:bg-amber-500 text-gray-900 font-extrabold text-xs rounded-full shadow-xs transition cursor-pointer"
+                          >
+                            Feedback
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setDrawerTab('Timeline')}
+                            className="px-5 py-2 bg-[#5CB85C] hover:bg-emerald-600 text-white font-extrabold text-xs rounded-full shadow-xs transition cursor-pointer"
+                          >
+                            History
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 2: Verification & Approval */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistVerificationOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                          <ShieldCheck size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Verification & Approval</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold bg-emerald-50 dark:bg-emerald-950/80 px-2.5 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">1 record</span>
+                        {histVerificationOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histVerificationOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        
+                        {/* Controls Bar */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select
+                              value={verifEntriesSize}
+                              onChange={(e) => setVerifEntriesSize(Number(e.target.value))}
+                              className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC]"
+                            >
+                              <option value={10}>10</option>
+                              <option value={25}>25</option>
+                              <option value={50}>50</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input
+                              type="text"
+                              value={verifSearchQuery}
+                              onChange={(e) => setVerifSearchQuery(e.target.value)}
+                              placeholder="Search verification log..."
+                              className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-56"
+                            />
                           </div>
                         </div>
-                      );
-                    })}
+
+                        {/* Verification & Approval Table with Tata Corporate Blue Gradient */}
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[600px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider">
+                              <tr>
+                                <th className="py-3 px-4">Processed by <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Processed Date & Time <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Remarks <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Status <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-slate-750 text-[11px]">
+                              <tr className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition">
+                                <td className="py-3 px-4 font-semibold text-gray-900 dark:text-gray-100">Abhishek - (8271039154)</td>
+                                <td className="py-3 px-4 font-medium text-gray-600 dark:text-gray-300 font-mono">05-05-2026, 9:32 AM</td>
+                                <td className="py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Testing</td>
+                                <td className="py-3 px-4 whitespace-nowrap">
+                                  <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-extrabold text-[11px] rounded-full border border-emerald-300 dark:border-emerald-800 whitespace-nowrap inline-flex items-center gap-1.5 shrink-0 shadow-2xs">
+                                    <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                    <span>Application Accept</span>
+                                  </span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Table Footer */}
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-1 text-xs text-gray-500">
+                          <span className="font-medium">Showing 1 to 1 of 1 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button className="px-3 py-1.5 bg-[#005BAC] text-white font-bold rounded-xl shadow-xs">1</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+
+                      </div>
+                    )}
                   </div>
+
+                  {/* Accordion 3: Load Survey Details */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistSurveyOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#005BAC] dark:text-blue-400">
+                          <ClipboardCheck size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Load Survey Details</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-[#005BAC] dark:text-blue-300 font-bold bg-blue-50 dark:bg-blue-950/80 px-2.5 py-0.5 rounded-md border border-blue-200 dark:border-blue-900">1 record</span>
+                        {histSurveyOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histSurveyOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select
+                              value={surveyEntriesSize}
+                              onChange={(e) => setSurveyEntriesSize(Number(e.target.value))}
+                              className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC]"
+                            >
+                              <option value={10}>10</option>
+                              <option value={25}>25</option>
+                              <option value={50}>50</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input
+                              type="text"
+                              value={surveySearchQuery}
+                              onChange={(e) => setSurveySearchQuery(e.target.value)}
+                              placeholder="Search..."
+                              className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Wide Scrollable Load Survey Table with Tata Corporate Blue Gradient */}
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[2600px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                              <tr>
+                                <th className="py-3 px-3">Application No <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Applicant Name <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Mobile <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Area Type <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">BP /Customer ID <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">BP Name <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Survey By <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Survey Date <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Area <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Sub Area <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Power May be Given <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Connection Not Possible Reason <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">MRU (DT No.) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">MRU Name <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">S/S LT Feeder No <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Feeder Pillar No <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">FP Switch /Fuse No <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Rail / Service Pole No <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Assessed Load <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Assessed Load Unit <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Supply Voltage <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Uses Type <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Is there any connection in premises <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Connection BP No(s) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Connection Meter No(s) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Remarks <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Attached Doc File Name <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Total Load (In KW) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Total Load (In KVA) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Apparatus <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">No Of Points <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Wattage (In KW) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Total Wattage (In KW) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-slate-750 text-[11px] whitespace-nowrap">
+                              <tr className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition">
+                                <td className="py-2.5 px-3 font-semibold text-gray-900 dark:text-gray-200">{selectedApp.applicationNumber || '260505041765'}</td>
+                                <td className="py-2.5 px-3 font-semibold text-gray-900 dark:text-gray-200">{selectedApp.fullName || selectedApp.customerName || 'Abhishek'}</td>
+                                <td className="py-2.5 px-3 text-gray-600 dark:text-gray-300 font-mono">{selectedApp.customerMobile || '8271039154'}</td>
+                                <td className="py-2.5 px-3 text-gray-600 dark:text-gray-300 font-semibold">{selectedApp.district || 'SERAIKELA'}</td>
+                                <td className="py-2.5 px-3 text-gray-400 font-mono">-</td>
+                                <td className="py-2.5 px-3 text-gray-400 font-mono">-</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-medium">Abhishek - (8271039154)</td>
+                                <td className="py-2.5 px-3 text-gray-600 dark:text-gray-300 font-mono">01-06-2026</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-semibold">{selectedApp.city || 'ADITYAPUR'}</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-semibold">ADARSH NAGAR</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300">From Existing Network</td>
+                                <td className="py-2.5 px-3 text-gray-400 font-mono">-</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-mono">ASHIYA01-ASHIANA ADITYA 630 KVA DT 1</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300">asd</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300">as</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300">sd</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-mono">1</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-mono">23</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-mono font-bold">3</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300">kW</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300">{selectedApp.voltageRequirement || '230V'}</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300">Commercial</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300">No</td>
+                                <td className="py-2.5 px-3 text-gray-400 font-mono">-</td>
+                                <td className="py-2.5 px-3 text-gray-400 font-mono">-</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 italic">ok</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-mono">0</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-mono">0</td>
+                                <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-mono">0</td>
+                                <td className="py-2.5 px-3 text-gray-400 font-mono">-</td>
+                                <td className="py-2.5 px-3 text-gray-400 font-mono">-</td>
+                                <td className="py-2.5 px-3 text-gray-400 font-mono">-</td>
+                                <td className="py-2.5 px-3 text-gray-400 font-mono">-</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-1 text-xs text-gray-500">
+                          <span className="font-medium">Showing 1 to 1 of 1 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button className="px-3 py-1.5 bg-[#005BAC] text-white font-bold rounded-xl shadow-xs">1</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 4: Load Survey Approval */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistSurveyApprovalOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                          <CheckSquare size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Load Survey Approval</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-400 font-medium bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">0 items</span>
+                        {histSurveyApprovalOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histSurveyApprovalOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none">
+                              <option value={10}>10</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input type="text" placeholder="Search..." className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52" />
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[600px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider">
+                              <tr>
+                                <th className="py-3 px-4">Processed by <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Processed Date & Time <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Remarks <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Status <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={4} className="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                  <FolderOpen size={22} className="mx-auto mb-1.5 opacity-60" />
+                                  <span>No data available in table</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span className="font-medium">Showing 0 to 0 of 0 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 5: Estimate Details */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistEstimateOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
+                          <Calculator size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Estimate Details</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-400 font-medium bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">0 items</span>
+                        {histEstimateOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histEstimateOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none">
+                              <option value={10}>10</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input type="text" placeholder="Search..." className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52" />
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[1400px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                              <tr>
+                                <th className="py-3 px-3">Sanctioned Load <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Voltage <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Estimate Date <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Service Line Cost <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Feeder Line Cost <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Supervision Cost <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Govt Fee <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">RoW Charges <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">ReEstimation Charges <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Meter Security <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Energy Security <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">GST <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Cess <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">FileName <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={14} className="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                  <FolderOpen size={22} className="mx-auto mb-1.5 opacity-60" />
+                                  <span>No data available in table</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span className="font-medium">Showing 0 to 0 of 0 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 6: Estimate Approval */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistEstimateApprovalOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Estimate Approval</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-400 font-medium bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">0 items</span>
+                        {histEstimateApprovalOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histEstimateApprovalOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none">
+                              <option value={10}>10</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input type="text" placeholder="Search..." className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52" />
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[600px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider">
+                              <tr>
+                                <th className="py-3 px-4">Processed by <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Processed Date & Time <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Remarks <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Status <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={4} className="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                  <FolderOpen size={22} className="mx-auto mb-1.5 opacity-60" />
+                                  <span>No data available in table</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span className="font-medium">Showing 0 to 0 of 0 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 7: Demand Note Details */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistDemandNoteOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                          <Receipt size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Demand Note Details</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-400 font-medium bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">0 items</span>
+                        {histDemandNoteOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histDemandNoteOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none">
+                              <option value={10}>10</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input type="text" placeholder="Search..." className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52" />
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[1300px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                              <tr>
+                                <th className="py-3 px-3">No Of Months <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Installation Charges <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Service Tax <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Education Cess <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Miscellaneous Charges <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Miscellaneous Charges 1 <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Energy Security <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Meter Security <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Total Amount <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Created Date <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Valid Till <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Demand Note File Name <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={12} className="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                  <FolderOpen size={22} className="mx-auto mb-1.5 opacity-60" />
+                                  <span>No data available in table</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span className="font-medium">Showing 0 to 0 of 0 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 8: Demand Note Collection */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistDemandCollectionOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
+                          <CreditCard size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Demand Note Collection</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-400 font-medium bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">0 items</span>
+                        {histDemandCollectionOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histDemandCollectionOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none">
+                              <option value={10}>10</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input type="text" placeholder="Search..." className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52" />
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[1100px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                              <tr>
+                                <th className="py-3 px-3">Processed by <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Processed Date & Time <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Remarks <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Bill Amount <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Paid Amount <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Payment Mode <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Payment Date <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Status <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Money Receipt <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={9} className="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                  <FolderOpen size={22} className="mx-auto mb-1.5 opacity-60" />
+                                  <span>No data available in table</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span className="font-medium">Showing 0 to 0 of 0 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 9: Job Allotment Details */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistJobAllotmentOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400">
+                          <Briefcase size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Job Allotment Details</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-400 font-medium bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">0 items</span>
+                        {histJobAllotmentOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histJobAllotmentOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none">
+                              <option value={10}>10</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input type="text" placeholder="Search..." className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52" />
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[800px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                              <tr>
+                                <th className="py-3 px-3">Assigned To <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Job Allotment Date <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Job Start Date <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Job End Date <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Vendor <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Attachment <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={6} className="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                  <FolderOpen size={22} className="mx-auto mb-1.5 opacity-60" />
+                                  <span>No data available in table</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span className="font-medium">Showing 0 to 0 of 0 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 10: RFC TR Details */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistRfcTrOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#005BAC] dark:text-blue-400">
+                          <Cpu size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">RFC TR Details</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-400 font-medium bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">0 items</span>
+                        {histRfcTrOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histRfcTrOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none">
+                              <option value={10}>10</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input type="text" placeholder="Search..." className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52" />
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[1300px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                              <tr>
+                                <th className="py-3 px-3">Receipt No <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Partner No <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Premise Type <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Cable Size <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Off Take Point <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Service No <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Current Rating <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Make <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Model <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Serial No <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">MFG Year <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">UOM <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={12} className="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                  <FolderOpen size={22} className="mx-auto mb-1.5 opacity-60" />
+                                  <span>No data available in table</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span className="font-medium">Showing 0 to 0 of 0 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 11: Energization Details */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistEnergizationOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-gray-50/80 dark:bg-slate-900/50 text-left font-bold text-gray-800 dark:text-white hover:bg-gray-100/70 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-500">
+                          <Zap size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold text-gray-900 dark:text-white">Energization Details</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-400 font-medium bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">0 items</span>
+                        {histEnergizationOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+                      </div>
+                    </button>
+
+                    {histEnergizationOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none">
+                              <option value={10}>10</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input type="text" placeholder="Search..." className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52" />
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[800px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                              <tr>
+                                <th className="py-3 px-3">Rate Category <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Energization Date <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Initial Reading (KWH) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Initial Reading (KW/KVA) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Initial Reading (KVAH) <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-3">Created By <ChevronsUpDown size={11} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={6} className="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                  <FolderOpen size={22} className="mx-auto mb-1.5 opacity-60" />
+                                  <span>No data available in table</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span className="font-medium">Showing 0 to 0 of 0 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion 12: Additional Comment (Soft Light-Blue Header Fill matching Screenshot 3) */}
+                  <div className="bg-white dark:bg-slate-850 rounded-2xl border border-blue-200 dark:border-sky-900/60 shadow-xs overflow-hidden transition hover:shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setHistAdditionalCommentOpen(prev => !prev)}
+                      className="w-full px-5 py-3.5 flex justify-between items-center bg-[#b8d5e8]/90 dark:bg-sky-950/80 text-left font-bold text-slate-800 dark:text-slate-100 hover:bg-[#a6ccdf] transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-white/70 dark:bg-sky-900/80 text-slate-800 dark:text-sky-300 shadow-2xs">
+                          <MessageSquare size={15} />
+                        </div>
+                        <span className="text-xs font-extrabold">Additional Comment</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-600 dark:text-sky-300 font-bold bg-white/60 dark:bg-sky-900/60 px-2 py-0.5 rounded-md">0 items</span>
+                        {histAdditionalCommentOpen ? <ChevronUp size={16} className="text-slate-700 dark:text-slate-300" /> : <ChevronDown size={16} className="text-slate-700 dark:text-slate-300" />}
+                      </div>
+                    </button>
+
+                    {histAdditionalCommentOpen && (
+                      <div className="p-4 border-t border-gray-150 dark:border-slate-750 space-y-3.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                          <div className="flex items-center space-x-2 font-semibold text-gray-600 dark:text-gray-300">
+                            <span>Show</span>
+                            <select className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white outline-none">
+                              <option value={10}>10</option>
+                            </select>
+                            <span>entries</span>
+                          </div>
+                          <div className="relative flex items-center">
+                            <Search size={14} className="absolute left-3 text-gray-400" />
+                            <input type="text" placeholder="Search..." className="pl-9 pr-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs outline-none focus:ring-2 focus:ring-[#005BAC] transition w-52" />
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto border border-gray-200 dark:border-slate-750 rounded-xl shadow-2xs">
+                          <table className="w-full text-xs text-left min-w-[650px]">
+                            <thead className="bg-gradient-to-r from-[#005BAC] via-[#004B8D] to-[#4B3E9E] text-white font-extrabold text-[11px] uppercase tracking-wider whitespace-nowrap">
+                              <tr>
+                                <th className="py-3 px-4">Added by <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Added on Date & Time <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Additional Comment <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                                <th className="py-3 px-4">Attachment <ChevronsUpDown size={12} className="inline ml-1 opacity-70" /></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={4} className="py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                                  <FolderOpen size={22} className="mx-auto mb-1.5 opacity-60" />
+                                  <span>No data available in table</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span className="font-medium">Showing 0 to 0 of 0 entries</span>
+                          <div className="flex items-center space-x-1">
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Previous</button>
+                            <button disabled className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-400 bg-gray-50 dark:bg-slate-900 cursor-not-allowed font-medium">Next</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
+              )}
+
+              {/* Tab 2: TIMELINE TRACKER */}
+              {drawerTab === 'Timeline' && (
+                <TataWorkflowTimeline application={selectedApp} isAdmin={true} />
               )}
 
               {/* Tab 3: AUDIT TRAIL LOGS */}
@@ -4067,7 +5275,7 @@ export const AdminApplications: React.FC = () => {
                               <>
                                 <button
                                   onClick={() => handleVerifyDoc(doc.id)}
-                                  className="px-3 py-1.5 bg-green-650 hover:bg-green-700 text-white rounded text-[10px] font-bold flex items-center transition"
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold flex items-center transition shadow-sm"
                                 >
                                   <Check size={12} className="mr-1" /> Verify
                                 </button>
@@ -4076,7 +5284,7 @@ export const AdminApplications: React.FC = () => {
                                     setRejectingDocId(doc.id);
                                     setDocRejectionReason('');
                                   }}
-                                  className="px-3 py-1.5 bg-red-650 hover:bg-red-700 text-white rounded text-[10px] font-bold flex items-center transition"
+                                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold flex items-center transition shadow-sm"
                                 >
                                   <X size={12} className="mr-1" /> Reject
                                 </button>
@@ -4093,12 +5301,12 @@ export const AdminApplications: React.FC = () => {
                                 placeholder="Specify exact rejection reason..."
                                 value={docRejectionReason}
                                 onChange={(e) => setDocRejectionReason(e.target.value)}
-                                className="w-full p-2 bg-gray-55 dark:bg-slate-750 text-xs border border-gray-205 dark:border-slate-650 rounded outline-none font-semibold text-gray-750"
+                                className="w-full p-2 bg-gray-50 dark:bg-slate-700 text-xs border border-gray-200 dark:border-slate-600 rounded outline-none font-semibold text-gray-800 dark:text-white"
                               />
                               <div className="flex space-x-2">
                                 <button 
                                   onClick={() => handleRejectDoc(doc.id)}
-                                  className="px-3 py-1 bg-red-650 text-white rounded text-[10px] font-bold transition"
+                                  className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold transition shadow-sm"
                                 >
                                   Confirm Rejection
                                 </button>
@@ -4282,21 +5490,21 @@ export const AdminApplications: React.FC = () => {
       {/* CUSTOMER DETAILS MODAL FOR SEPARATE CONNECTION */}
       {customerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full text-left shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden font-sans text-xs">
+          <div className="bg-white dark:bg-slate-850 rounded-3xl max-w-2xl w-full text-left shadow-2xl border border-gray-200 dark:border-slate-750 overflow-hidden font-sans text-xs">
             
             {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-gray-150 dark:border-slate-700/60 flex justify-between items-center bg-gray-50/50 dark:bg-slate-900/35">
-              <span className="font-bold text-gray-800 dark:text-white text-sm">Customer Details</span>
+            <div className="px-6 py-4.5 border-b border-gray-150 dark:border-slate-750 flex justify-between items-center bg-gray-50/70 dark:bg-slate-900/50">
+              <span className="font-extrabold text-gray-900 dark:text-white text-sm">Customer Details Request</span>
               
               {/* Radio Group */}
               <div className="flex items-center space-x-4 text-xs font-semibold text-gray-700 dark:text-gray-300">
-                <span>Connection Type</span>
+                <span>Connection Type:</span>
                 <label className="flex items-center space-x-1.5 cursor-pointer">
                   <input
                     type="radio"
                     checked={customerConnectionType === 'Electricity'}
                     onChange={() => setCustomerConnectionType('Electricity')}
-                    className="text-[#4B3E9E] focus:ring-[#4B3E9E] h-4 w-4"
+                    className="text-[#005BAC] focus:ring-[#005BAC] h-4 w-4"
                   />
                   <span>Electricity</span>
                 </label>
@@ -4305,7 +5513,7 @@ export const AdminApplications: React.FC = () => {
                     type="radio"
                     checked={customerConnectionType === 'Water'}
                     onChange={() => setCustomerConnectionType('Water')}
-                    className="text-[#4B3E9E] focus:ring-[#4B3E9E] h-4 w-4"
+                    className="text-[#005BAC] focus:ring-[#005BAC] h-4 w-4"
                   />
                   <span>Water</span>
                 </label>
@@ -4313,21 +5521,21 @@ export const AdminApplications: React.FC = () => {
 
               <button 
                 onClick={() => setCustomerModalOpen(false)} 
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 transition"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 transition cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
             {/* Tabs Selector */}
-            <div className="flex border-b border-gray-150 dark:border-slate-700/60 bg-gray-50 dark:bg-slate-900/20">
+            <div className="flex p-2 gap-2 border-b border-gray-150 dark:border-slate-750 bg-gray-50/40 dark:bg-slate-900/30">
               <button
                 type="button"
                 onClick={() => setCustomerModalTab('Existing')}
-                className={`flex-1 py-3 text-center text-xs font-bold transition-all ${
+                className={`flex-1 py-2.5 text-center text-xs font-bold rounded-xl transition-all cursor-pointer ${
                   customerModalTab === 'Existing'
-                    ? 'bg-[#9A8FDB]/60 text-slate-800 dark:text-slate-100 border-r border-gray-150 dark:border-slate-700'
-                    : 'bg-gray-100 dark:bg-slate-900 text-gray-450 hover:bg-gray-200'
+                    ? 'bg-[#005BAC] text-white shadow-md'
+                    : 'bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800'
                 }`}
               >
                 Existing Customer
@@ -4335,10 +5543,10 @@ export const AdminApplications: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCustomerModalTab('New')}
-                className={`flex-1 py-3 text-center text-xs font-bold transition-all ${
+                className={`flex-1 py-2.5 text-center text-xs font-bold rounded-xl transition-all cursor-pointer ${
                   customerModalTab === 'New'
-                    ? 'bg-[#9A8FDB]/60 text-slate-800 dark:text-slate-100'
-                    : 'bg-gray-100 dark:bg-slate-900 text-gray-455 hover:bg-gray-200 border-l border-gray-150 dark:border-slate-700'
+                    ? 'bg-[#005BAC] text-white shadow-md'
+                    : 'bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800'
                 }`}
               >
                 New Customer
@@ -4349,27 +5557,27 @@ export const AdminApplications: React.FC = () => {
             <div className="p-6">
               {customerModalTab === 'Existing' ? (
                 <div className="space-y-4 animate-fadeIn">
-                  <p className="text-red-500 font-semibold text-[11px] leading-relaxed">
-                    I have Customer's User Name <span className="text-red-400 font-bold">(Fields is mandatory !!!)</span>
+                  <p className="text-gray-500 dark:text-slate-400 font-medium text-xs leading-relaxed">
+                    Search and verify customer account by user name <span className="text-red-500 font-bold">*</span>
                   </p>
                   
-                  <div className="p-4 bg-white dark:bg-slate-850 rounded-xl border border-gray-200 dark:border-slate-750">
+                  <div className="p-4 bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-200 dark:border-slate-750">
                     <input
                       type="text"
                       placeholder="Enter Customer's User Name"
                       value={customerUsername}
                       onChange={(e) => setCustomerUsername(e.target.value)}
-                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded text-xs font-semibold outline-none focus:border-[#4B3E9E] text-gray-750"
+                      className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC] text-gray-800 dark:text-white"
                     />
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3 animate-fadeIn">
-                  <p className="text-red-500 font-semibold text-[11px] leading-relaxed">
-                    Don't have Customer's User Name <span className="text-red-400 font-bold">(All the fields are mandatory !!!)</span>
+                  <p className="text-gray-500 dark:text-slate-400 font-medium text-xs leading-relaxed">
+                    Create new customer account record <span className="text-red-500 font-bold">*</span>
                   </p>
                   
-                  <div className="p-4 bg-white dark:bg-slate-850 rounded-xl border border-gray-200 dark:border-slate-750 space-y-3">
+                  <div className="p-4 bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-200 dark:border-slate-750 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <input
@@ -4377,16 +5585,16 @@ export const AdminApplications: React.FC = () => {
                           placeholder="Name of the Customer"
                           value={newCustName}
                           onChange={(e) => setNewCustName(e.target.value)}
-                          className="w-full p-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded text-xs font-semibold outline-none focus:border-[#4B3E9E]"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC]"
                         />
                       </div>
                       <div>
                         <input
                           type="text"
-                          placeholder="Aadhar No"
+                          placeholder="Aadhaar No"
                           value={newCustAadhar}
                           onChange={(e) => setNewCustAadhar(e.target.value)}
-                          className="w-full p-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded text-xs font-semibold outline-none focus:border-[#4B3E9E]"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC]"
                         />
                       </div>
                     </div>
@@ -4398,7 +5606,7 @@ export const AdminApplications: React.FC = () => {
                           placeholder="Mobile No"
                           value={newCustMobile}
                           onChange={(e) => setNewCustMobile(e.target.value)}
-                          className="w-full p-2 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded text-xs font-semibold outline-none focus:border-[#4B3E9E]"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC]"
                         />
                       </div>
                       <div>
@@ -4407,7 +5615,7 @@ export const AdminApplications: React.FC = () => {
                           placeholder="Email Id"
                           value={newCustEmail}
                           onChange={(e) => setNewCustEmail(e.target.value)}
-                          className="w-full p-2 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded text-xs font-semibold outline-none focus:border-[#4B3E9E]"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC]"
                         />
                       </div>
                     </div>
@@ -4418,30 +5626,33 @@ export const AdminApplications: React.FC = () => {
                         placeholder="Address"
                         value={newCustAddress}
                         onChange={(e) => setNewCustAddress(e.target.value)}
-                        className="w-full p-2 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded text-xs font-semibold outline-none focus:border-[#4B3E9E]"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC]"
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <select
-                          value={newCustArea}
-                          onChange={(e) => setNewCustArea(e.target.value)}
-                          className="w-full p-2 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded text-xs font-semibold outline-none focus:border-[#4B3E9E]"
-                        >
-                          <option value="">--Select Area--</option>
-                          <option value="JAMSHEDPUR">JAMSHEDPUR</option>
-                          <option value="ADITYAPUR">ADITYAPUR</option>
-                          <option value="RANCHI">RANCHI</option>
-                        </select>
-                      </div>
-                      <div>
-                        <input
-                          type="text"
-                          value={customerConnectionType === 'Electricity' ? 'Electric' : 'Water'}
-                          className="w-full p-2 bg-gray-50 dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded text-xs font-bold text-gray-450 cursor-not-allowed outline-none"
-                          readOnly
-                        />
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-2">
+                        Select Business Area <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {['JAMSHEDPUR', 'ADITYAPUR', 'RANCHI'].map(area => {
+                          const isSelected = newCustArea === area;
+                          return (
+                            <button
+                              key={area}
+                              type="button"
+                              onClick={() => setNewCustArea(area)}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border cursor-pointer ${
+                                isSelected
+                                  ? 'bg-blue-50 dark:bg-blue-950/40 text-[#005BAC] dark:text-tata-blue-light border-[#005BAC] ring-2 ring-[#005BAC]/20 shadow-xs'
+                                  : 'bg-white dark:bg-slate-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              <MapPin size={13} />
+                              <span>{area}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -4449,49 +5660,61 @@ export const AdminApplications: React.FC = () => {
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-5 py-3.5 border-t border-gray-150 dark:border-slate-700/60 flex justify-end items-center gap-3 bg-gray-50/50 dark:bg-slate-900/35">
+            {/* Modal Footer matching Reference Image 2 */}
+            <div className="px-6 py-4 border-t border-gray-150 dark:border-slate-750 flex justify-between items-center bg-gray-50/70 dark:bg-slate-900/50">
               <button
                 type="button"
                 onClick={() => setCustomerModalOpen(false)}
-                className="px-4 py-2 bg-slate-400 hover:bg-slate-500 text-white text-xs font-bold rounded-lg shadow transition"
+                className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer"
               >
                 Close
               </button>
 
-              {customerModalTab === 'Existing' ? (
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!customerUsername.trim()) {
-                      toast.error("Customer's User Name is required!");
-                      return;
-                    }
-                    toast.success(`Customer "${customerUsername}" verified successfully. Proceeding...`);
-                    setCustomerModalOpen(false);
-                    navigate(`/customer/apply?type=separate&division=${customerConnectionType}&username=${customerUsername}`);
-                  }}
-                  className="px-4 py-2 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-xs font-bold rounded-lg shadow transition"
+                  onClick={() => toast.info("Draft customer request saved.")}
+                  className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
                 >
-                  Verify Customer
+                  Save Draft
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!newCustName.trim() || !newCustAadhar.trim() || !newCustMobile.trim() || !newCustEmail.trim() || !newCustAddress.trim() || !newCustArea) {
-                      toast.error("All fields are mandatory!");
-                      return;
-                    }
-                    toast.success(`Customer "${newCustName}" added successfully. Proceeding...`);
-                    setCustomerModalOpen(false);
-                    navigate(`/customer/apply?type=separate&division=${customerConnectionType}&name=${newCustName}&mobile=${newCustMobile}&email=${newCustEmail}&aadhar=${newCustAadhar}&address=${newCustAddress}&area=${newCustArea}`);
-                  }}
-                  className="px-4 py-2 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-xs font-bold rounded-lg shadow transition"
-                >
-                  Add Customer & Proceed
-                </button>
-              )}
+
+                {customerModalTab === 'Existing' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!customerUsername.trim()) {
+                        toast.error("Customer's User Name is required!");
+                        return;
+                      }
+                      toast.success(`Customer "${customerUsername}" verified successfully. Proceeding...`);
+                      setCustomerModalOpen(false);
+                      navigate(`/customer/apply?type=separate&division=${customerConnectionType}&username=${customerUsername}`);
+                    }}
+                    className="px-6 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Verify & Continue</span>
+                    <ArrowRight size={14} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newCustName.trim() || !newCustAadhar.trim() || !newCustMobile.trim() || !newCustEmail.trim() || !newCustAddress.trim() || !newCustArea) {
+                        toast.error("All fields are mandatory!");
+                        return;
+                      }
+                      toast.success(`Customer "${newCustName}" added successfully. Proceeding...`);
+                      setCustomerModalOpen(false);
+                      navigate(`/customer/apply?type=separate&division=${customerConnectionType}&name=${newCustName}&mobile=${newCustMobile}&email=${newCustEmail}&aadhar=${newCustAadhar}&address=${newCustAddress}&area=${newCustArea}`);
+                    }}
+                    className="px-6 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Add Customer & Continue</span>
+                    <ArrowRight size={14} />
+                  </button>
+                )}
+              </div>
             </div>
 
           </div>
@@ -4541,19 +5764,30 @@ export const AdminApplications: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Attachment
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+                  Attachment Document
                 </label>
-                <div className="border border-gray-250 dark:border-slate-700 rounded p-1.5 bg-white dark:bg-slate-900">
+                <div className="p-3 bg-gray-50/70 dark:bg-slate-900/60 rounded-2xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3">
+                  <span className="text-xs text-gray-400 font-semibold truncate">
+                    {feedbackFile ? feedbackFile.name : 'No file chosen'}
+                  </span>
                   <input
                     type="file"
+                    id="feedback-file-input"
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
                         setFeedbackFile(e.target.files[0]);
                       }
                     }}
-                    className="w-full text-xs font-semibold text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-gray-200 dark:file:bg-slate-750 file:text-gray-800 dark:file:text-white hover:file:bg-gray-300 dark:hover:file:bg-slate-700 cursor-pointer"
+                    className="hidden"
                   />
+                  <label
+                    htmlFor="feedback-file-input"
+                    className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition whitespace-nowrap flex items-center space-x-1.5"
+                  >
+                    <Upload size={13} />
+                    <span>Choose File</span>
+                  </label>
                 </div>
               </div>
 
@@ -4573,6 +5807,136 @@ export const AdminApplications: React.FC = () => {
                   Add Feedback
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SMART DOCUMENT VERIFICATION ENGINE VIEW */}
+      {showVerificationModal && selectedApp && (
+        <DocumentVerificationView
+          application={selectedApp}
+          allApplications={applications}
+          onSelectApplication={(app: any) => {
+            setSelectedApp(app);
+          }}
+          onClose={() => setShowVerificationModal(false)}
+          onUpdateStatus={async () => {
+            const updatedApps = await applicationService.getApplications();
+            setApplications(updatedApps);
+            const freshApp = updatedApps.find((a: any) => a.id === selectedApp.id);
+            if (freshApp) setSelectedApp(freshApp);
+          }}
+        />
+      )}
+
+      {/* REVOKE APPLICATION MODAL */}
+      {revokeModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[99999] animate-fadeIn">
+          <div className="bg-white dark:bg-slate-850 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-150 dark:border-slate-750 relative space-y-4 text-left">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-extrabold text-gray-900 dark:text-white">
+                Revoke Application
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRevokeModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-lg transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleRevokeSubmit} className="space-y-4">
+              
+              {/* Revoke Stage */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1">
+                  Revoke Stage<span className="text-red-500 ml-0.5">*</span>
+                </label>
+                <select
+                  value={revokeStage}
+                  onChange={(e) => setRevokeStage(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC]"
+                  required
+                >
+                  <option value="Land Survey Details">Land Survey Details</option>
+                  <option value="Estimate Approval">Estimate Approval</option>
+                  <option value="Estimate Details">Estimate Details</option>
+                  <option value="Load Survey Approval">Load Survey Approval</option>
+                  <option value="Load Survey Details">Load Survey Details</option>
+                  <option value="Verification & Approval">Verification & Approval</option>
+                  <option value="Demand Note Details">Demand Note Details</option>
+                </select>
+              </div>
+
+              {/* Revoke To */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1">
+                  Revoke To<span className="text-red-500 ml-0.5">*</span>
+                </label>
+                <select
+                  value={revokeTo}
+                  onChange={(e) => setRevokeTo(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC]"
+                  required
+                >
+                  <option value="Officer 1 - Verification">Officer 1 - Verification</option>
+                  <option value="Officer 2 - Load Survey">Officer 2 - Load Survey</option>
+                  <option value="Officer 3 - Estimate">Officer 3 - Estimate</option>
+                  <option value="SuperAdmin">SuperAdmin</option>
+                </select>
+              </div>
+
+              {/* Revoke Date */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1">
+                  Revoke Date<span className="text-red-500 ml-0.5">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={revokeDate}
+                  onChange={(e) => setRevokeDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC]"
+                  required
+                />
+              </div>
+
+              {/* Revoke Remarks */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1">
+                  Revoke Remarks<span className="text-red-500 ml-0.5">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={revokeRemarks}
+                  onChange={(e) => setRevokeRemarks(e.target.value)}
+                  placeholder="Revoke Remarks"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white text-xs font-semibold outline-none focus:ring-2 focus:ring-[#005BAC]"
+                  required
+                />
+              </div>
+
+              {/* Modal Action Buttons matching Screenshot */}
+              <div className="pt-2 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setRevokeModalOpen(false)}
+                  className="w-full py-2.5 bg-[#8A95A5] hover:bg-slate-500 text-white font-bold text-xs rounded-xl transition duration-150 cursor-pointer shadow-xs"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition duration-150 shadow-md cursor-pointer"
+                >
+                  Revoke & back to level
+                </button>
+              </div>
+
             </form>
           </div>
         </div>

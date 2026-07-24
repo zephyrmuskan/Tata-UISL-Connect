@@ -12,6 +12,7 @@ namespace TataUisl.Core.Entities
         public string MobileNumber { get; set; } = string.Empty;
         public int RoleId { get; set; }
         public string OfficerRole { get; set; } = "Customer"; // SuperAdmin, Officer1, Officer2, Officer3, Customer
+        public string? EmployeeId { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

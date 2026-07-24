@@ -8,6 +8,19 @@ import {
 import { applicationService } from '../services/api';
 import { toast } from 'react-toastify';
 
+const getStepIcon = (title: string, index: number) => {
+  const t = title.toLowerCase();
+  if (t.includes('personal') || t.includes('applicant') || t.includes('consumer')) return User;
+  if (t.includes('address') || t.includes('location')) return MapPin;
+  if (t.includes('supply') || t.includes('connection') || t.includes('request')) return Zap;
+  if (t.includes('existing') || t.includes('property') || t.includes('details')) return Home;
+  if (t.includes('attachment') || t.includes('document') || t.includes('upload')) return FileText;
+  if (t.includes('declaration') || t.includes('review') || t.includes('terms')) return Shield;
+  
+  const icons = [User, MapPin, Zap, Home, FileText, Shield];
+  return icons[index % icons.length];
+};
+
 export const NewApplication: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -972,26 +985,44 @@ export const NewApplication: React.FC = () => {
             </button>
           </div>
 
-          {/* Stepper */}
-          <div className="bg-[#E2E8F0] dark:bg-slate-900 p-1 rounded-lg flex justify-between items-center w-full gap-1.5 overflow-x-auto">
-            {steps.map((step, index) => {
-              const stepNum = index + 1;
-              const isActive = currentStep === stepNum;
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setCurrentStep(stepNum)}
-                  className={`flex-1 text-center py-1.5 px-2 text-[10px] font-black rounded-md transition-all whitespace-nowrap ${
-                    isActive
-                      ? 'bg-[#4B3E9E] text-white shadow'
-                      : 'bg-white/40 dark:bg-slate-800/40 text-gray-700 dark:text-gray-300 hover:bg-white/60'
-                  }`}
-                >
-                  {step.title}
-                </button>
-              );
-            })}
+          {/* Connected Icon Stepper */}
+          <div className="bg-white dark:bg-slate-850 p-6 rounded-3xl border border-gray-200 dark:border-slate-750 shadow-md mb-6">
+            <div className="flex items-center justify-between max-w-3xl mx-auto px-4 relative">
+              <div className="absolute top-5 left-10 right-10 h-0.5 bg-gray-200 dark:bg-slate-700 -translate-y-1/2 z-0" />
+              {steps.map((step, index) => {
+                const stepNum = index + 1;
+                const isActive = currentStep === stepNum;
+                const isCompleted = currentStep > stepNum;
+                const StepIcon = getStepIcon(step.title, index);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setCurrentStep(stepNum)}
+                    className="relative z-10 flex flex-col items-center group focus:outline-none cursor-pointer"
+                  >
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      isActive 
+                        ? 'bg-[#005BAC] text-white ring-4 ring-blue-100 dark:ring-blue-900/40 shadow-lg scale-110' 
+                        : isCompleted 
+                          ? 'bg-emerald-600 text-white shadow-sm' 
+                          : 'bg-white dark:bg-slate-800 text-gray-400 border-2 border-gray-200 dark:border-slate-700 hover:border-gray-300'
+                    }`}>
+                      {isCompleted ? <Check size={18} /> : <StepIcon size={18} />}
+                    </div>
+                    <span className={`text-[11px] font-bold mt-2 transition-colors text-center ${
+                      isActive 
+                        ? 'text-[#005BAC] dark:text-tata-blue-light font-extrabold' 
+                        : isCompleted 
+                          ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                          : 'text-gray-400 dark:text-slate-500'
+                    }`}>
+                      {step.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Form Content Box */}
@@ -1941,26 +1972,44 @@ export const NewApplication: React.FC = () => {
             </button>
           </div>
 
-          {/* Stepper */}
-          <div className="bg-[#E2E8F0] dark:bg-slate-900 p-1 rounded-lg flex justify-between items-center w-full gap-1.5 overflow-x-auto">
-            {provisionalSteps.map((step, index) => {
-              const stepNum = index + 1;
-              const isActive = currentStep === stepNum;
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setCurrentStep(stepNum)}
-                  className={`flex-1 text-center py-1.5 px-2 text-[10px] font-black rounded-md transition-all whitespace-nowrap ${
-                    isActive
-                      ? 'bg-[#4B3E9E] text-white shadow'
-                      : 'bg-white/40 dark:bg-slate-800/40 text-gray-700 dark:text-gray-300 hover:bg-white/60'
-                  }`}
-                >
-                  {step.title}
-                </button>
-              );
-            })}
+          {/* Connected Icon Stepper */}
+          <div className="bg-white dark:bg-slate-850 p-6 rounded-3xl border border-gray-200 dark:border-slate-750 shadow-md mb-6">
+            <div className="flex items-center justify-between max-w-4xl mx-auto px-4 relative">
+              <div className="absolute top-5 left-10 right-10 h-0.5 bg-gray-200 dark:bg-slate-700 -translate-y-1/2 z-0" />
+              {provisionalSteps.map((step, index) => {
+                const stepNum = index + 1;
+                const isActive = currentStep === stepNum;
+                const isCompleted = currentStep > stepNum;
+                const StepIcon = getStepIcon(step.title, index);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setCurrentStep(stepNum)}
+                    className="relative z-10 flex flex-col items-center group focus:outline-none cursor-pointer"
+                  >
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      isActive 
+                        ? 'bg-[#005BAC] text-white ring-4 ring-blue-100 dark:ring-blue-900/40 shadow-lg scale-110' 
+                        : isCompleted 
+                          ? 'bg-emerald-600 text-white shadow-sm' 
+                          : 'bg-white dark:bg-slate-800 text-gray-400 border-2 border-gray-200 dark:border-slate-700 hover:border-gray-300'
+                    }`}>
+                      {isCompleted ? <Check size={18} /> : <StepIcon size={18} />}
+                    </div>
+                    <span className={`text-[11px] font-bold mt-2 transition-colors text-center ${
+                      isActive 
+                        ? 'text-[#005BAC] dark:text-tata-blue-light font-extrabold' 
+                        : isCompleted 
+                          ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                          : 'text-gray-400 dark:text-slate-500'
+                    }`}>
+                      {step.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Form Content Box */}
@@ -2089,12 +2138,12 @@ export const NewApplication: React.FC = () => {
 
                 {/* Right Column */}
                 <div className="space-y-3">
-                  <div className="p-2.5 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
+                  <div className="p-3 bg-gray-50/70 dark:bg-slate-900/60 rounded-2xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
                     <div className="flex-1 min-w-0">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 leading-normal truncate">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 truncate">
                         Premises Photo <span className="text-[10px] text-red-500 font-bold">(Size 14x8 cm)</span>
                       </label>
-                      <span className="text-[10px] text-gray-400 block truncate">
+                      <span className="text-[11px] text-gray-400 block truncate mt-0.5">
                         {uploadedFiles['Photo of Premises']?.name || 'No file chosen'}
                       </span>
                     </div>
@@ -2108,19 +2157,20 @@ export const NewApplication: React.FC = () => {
                       />
                       <label
                         htmlFor="file-premises"
-                        className="px-3 py-1.5 bg-[#4B3E9E] text-white text-[10px] font-black rounded-lg cursor-pointer hover:bg-[#3b3082] transition whitespace-nowrap"
+                        className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition whitespace-nowrap flex items-center space-x-1.5"
                       >
-                        Choose file
+                        <Upload size={13} />
+                        <span>Choose File</span>
                       </label>
                     </div>
                   </div>
 
-                  <div className="p-2.5 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
+                  <div className="p-3 bg-gray-50/70 dark:bg-slate-900/60 rounded-2xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
                     <div className="flex-1 min-w-0">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 leading-normal truncate">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 truncate">
                         Passport Photo <span className="text-red-500 font-bold">*</span>
                       </label>
-                      <span className="text-[10px] text-gray-400 block truncate">
+                      <span className="text-[11px] text-gray-400 block truncate mt-0.5">
                         {uploadedFiles['Passport Photo']?.name || 'No file chosen'}
                       </span>
                     </div>
@@ -2134,19 +2184,20 @@ export const NewApplication: React.FC = () => {
                       />
                       <label
                         htmlFor="file-passport"
-                        className="px-3 py-1.5 bg-[#4B3E9E] text-white text-[10px] font-black rounded-lg cursor-pointer hover:bg-[#3b3082] transition whitespace-nowrap"
+                        className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition whitespace-nowrap flex items-center space-x-1.5"
                       >
-                        Choose file
+                        <Upload size={13} />
+                        <span>Choose File</span>
                       </label>
                     </div>
                   </div>
 
-                  <div className="p-2.5 bg-gray-55 dark:bg-slate-900/40 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
+                  <div className="p-3 bg-gray-50/70 dark:bg-slate-900/60 rounded-2xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
                     <div className="flex-1 min-w-0">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 leading-normal truncate">
-                        AADHAR <span className="text-[10px] text-gray-400 font-medium">(Optional)</span>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 truncate">
+                        Aadhaar Document <span className="text-[10px] text-gray-400 font-medium">(Optional)</span>
                       </label>
-                      <span className="text-[10px] text-gray-400 block truncate">
+                      <span className="text-[11px] text-gray-400 block truncate mt-0.5">
                         {uploadedFiles['Aadhaar Card']?.name || 'No file chosen'}
                       </span>
                     </div>
@@ -2160,9 +2211,10 @@ export const NewApplication: React.FC = () => {
                       />
                       <label
                         htmlFor="file-aadhar"
-                        className="px-3 py-1.5 bg-[#4B3E9E] text-white text-[10px] font-black rounded-lg cursor-pointer hover:bg-[#3b3082] transition whitespace-nowrap"
+                        className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition whitespace-nowrap flex items-center space-x-1.5"
                       >
-                        Choose file
+                        <Upload size={13} />
+                        <span>Choose File</span>
                       </label>
                     </div>
                   </div>
@@ -2274,11 +2326,11 @@ export const NewApplication: React.FC = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                   {['Land Ownership Proof', 'Identity Proof Document', 'Recent Utility Bill'].map((docType) => (
-                    <div key={docType} className="p-2.5 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-250 dark:border-slate-700 flex justify-between items-center text-xs">
+                    <div key={docType} className="p-3 bg-gray-50/70 dark:bg-slate-900/60 rounded-2xl border border-gray-200 dark:border-slate-700 flex justify-between items-center text-xs">
                       <div className="text-left max-w-[70%]">
-                        <span className="block font-bold text-gray-700 dark:text-gray-300 truncate">{docType} *</span>
-                        <span className="text-[10px] text-gray-400 block mt-0.5 truncate">
-                          {uploadedFiles[docType]?.name || 'Not Uploaded'}
+                        <span className="block font-bold text-gray-700 dark:text-gray-200 truncate">{docType} *</span>
+                        <span className="text-[11px] text-gray-400 block mt-0.5 truncate">
+                          {uploadedFiles[docType]?.name || 'No file chosen'}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -2291,9 +2343,10 @@ export const NewApplication: React.FC = () => {
                         />
                         <label
                           htmlFor={`file-${docType}`}
-                          className="px-3 py-1 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-[10px] font-bold rounded cursor-pointer whitespace-nowrap transition"
+                          className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition whitespace-nowrap flex items-center space-x-1.5"
                         >
-                          Upload
+                          <Upload size={13} />
+                          <span>Choose File</span>
                         </label>
                       </div>
                     </div>
@@ -2342,50 +2395,52 @@ export const NewApplication: React.FC = () => {
               </div>
             )}
 
-            {/* Stepper Footer Controls */}
-            <div className="flex justify-end items-center mt-4 pt-3 border-t border-gray-150 dark:border-slate-700 gap-3">
-              
-              {/* Save As Draft */}
-              <button
-                type="button"
-                onClick={() => saveDraftPayload(false)}
-                className="px-4 py-2 bg-[#FFB800] hover:bg-[#e6a600] text-slate-900 text-xs font-black rounded-xl shadow-sm transition-all"
-              >
-                Save As Draft
-              </button>
+            {/* Stepper Footer Controls matching Reference Image 2 */}
+            <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-150 dark:border-slate-750">
+              <div>
+                {currentStep > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(prev => prev - 1)}
+                    className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ArrowLeft size={14} /> Back
+                  </button>
+                ) : <div />}
+              </div>
 
-              {/* Previous */}
-              {currentStep > 1 && (
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setCurrentStep(prev => prev - 1)}
-                  className="px-4 py-2 bg-[#A0AEC0] hover:bg-[#8a9ba8] text-slate-900 text-xs font-black rounded-xl shadow-sm transition-all"
+                  onClick={() => saveDraftPayload(false)}
+                  className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
                 >
-                  Previous
+                  Save Draft
                 </button>
-              )}
 
-              {/* Next / Submit */}
-              {currentStep < 5 ? (
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(prev => prev + 1)}
-                  className="px-5 py-2 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-xs font-black rounded-xl shadow-sm transition-all"
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={!declarationChecked || isSubmitting}
-                  onClick={onSubmit}
-                  className={`px-5 py-2 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-xs font-black rounded-xl shadow-sm transition-all ${
-                    (!declarationChecked || isSubmitting) ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
-                </button>
-              )}
+                {currentStep < 5 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(prev => prev + 1)}
+                    className="px-6 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Continue</span>
+                    <ArrowRight size={14} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!declarationChecked || isSubmitting}
+                    onClick={onSubmit}
+                    className={`px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer ${
+                      (!declarationChecked || isSubmitting) ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <span>{isSubmitting ? 'Submitting...' : 'Submit Request'}</span>
+                    <CheckCircle2 size={16} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </>
@@ -2408,26 +2463,44 @@ export const NewApplication: React.FC = () => {
             </button>
           </div>
 
-          {/* Stepper */}
-          <div className="bg-[#E2E8F0] dark:bg-slate-900 p-1 rounded-lg flex justify-between items-center w-full gap-1.5 overflow-x-auto">
-            {permanentLtSteps.map((step, index) => {
-              const stepNum = index + 1;
-              const isActive = currentStep === stepNum;
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setCurrentStep(stepNum)}
-                  className={`flex-1 text-center py-1.5 px-2 text-[10px] font-black rounded-md transition-all whitespace-nowrap ${
-                    isActive
-                      ? 'bg-[#4B3E9E] text-white shadow'
-                      : 'bg-white/40 dark:bg-slate-800/40 text-gray-700 dark:text-gray-300 hover:bg-white/60'
-                  }`}
-                >
-                  {step.title}
-                </button>
-              );
-            })}
+          {/* Connected Icon Stepper */}
+          <div className="bg-white dark:bg-slate-850 p-6 rounded-3xl border border-gray-200 dark:border-slate-750 shadow-md mb-6">
+            <div className="flex items-center justify-between max-w-4xl mx-auto px-4 relative">
+              <div className="absolute top-5 left-10 right-10 h-0.5 bg-gray-200 dark:bg-slate-700 -translate-y-1/2 z-0" />
+              {permanentLtSteps.map((step, index) => {
+                const stepNum = index + 1;
+                const isActive = currentStep === stepNum;
+                const isCompleted = currentStep > stepNum;
+                const StepIcon = getStepIcon(step.title, index);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setCurrentStep(stepNum)}
+                    className="relative z-10 flex flex-col items-center group focus:outline-none cursor-pointer"
+                  >
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      isActive 
+                        ? 'bg-[#005BAC] text-white ring-4 ring-blue-100 dark:ring-blue-900/40 shadow-lg scale-110' 
+                        : isCompleted 
+                          ? 'bg-emerald-600 text-white shadow-sm' 
+                          : 'bg-white dark:bg-slate-800 text-gray-400 border-2 border-gray-200 dark:border-slate-700 hover:border-gray-300'
+                    }`}>
+                      {isCompleted ? <Check size={18} /> : <StepIcon size={18} />}
+                    </div>
+                    <span className={`text-[11px] font-bold mt-2 transition-colors text-center ${
+                      isActive 
+                        ? 'text-[#005BAC] dark:text-tata-blue-light font-extrabold' 
+                        : isCompleted 
+                          ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                          : 'text-gray-400 dark:text-slate-500'
+                    }`}>
+                      {step.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Form Content Box */}
@@ -2437,47 +2510,59 @@ export const NewApplication: React.FC = () => {
                 {/* Left Column */}
                 <div className="space-y-2.5">
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Business Area <span className="text-red-500">*</span></label>
-                    <select
-                      {...register('businessArea')}
-                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                      required
-                    >
-                      <option value="">--Select Business Area--</option>
-                      <option value="JAMSHEDPUR">JAMSHEDPUR</option>
-                      <option value="ADITYAPUR">ADITYAPUR</option>
-                      <option value="RANCHI">RANCHI</option>
-                    </select>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-2">
+                      Business Area <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {['JAMSHEDPUR', 'ADITYAPUR', 'RANCHI'].map(area => {
+                        const isSelected = watch('businessArea') === area;
+                        return (
+                          <button
+                            key={area}
+                            type="button"
+                            onClick={() => setValue('businessArea', area)}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border cursor-pointer ${
+                              isSelected
+                                ? 'bg-blue-50 dark:bg-blue-950/40 text-[#005BAC] dark:text-tata-blue-light border-[#005BAC] ring-2 ring-[#005BAC]/20 shadow-xs'
+                                : 'bg-gray-50/70 dark:bg-slate-900/40 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            <MapPin size={13} />
+                            <span>{area}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Owner/Organization Name <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">Owner / Organization Name <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       {...register('ownerOrgName')}
-                      placeholder="Owner/Organization Name"
-                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
+                      placeholder="Enter Owner or Organization Name"
+                      className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] transition-all shadow-xs"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Name of the Applicant <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">Name of the Applicant <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       {...register('fullName')}
-                      placeholder="Name of the Applicant"
-                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
+                      placeholder="Full Name of the Applicant"
+                      className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] transition-all shadow-xs"
                       required
                     />
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <div className="w-1/3">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Relation <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">Relation <span className="text-red-500">*</span></label>
                       <select
                         {...register('relationshipType')}
-                        className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-gray-255 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
+                        className="w-full px-3 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] transition-all shadow-xs"
                       >
                         <option value="Father">Father</option>
                         <option value="Mother">Mother</option>
@@ -2486,41 +2571,56 @@ export const NewApplication: React.FC = () => {
                       </select>
                     </div>
                     <div className="w-2/3">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Relative's Name <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">Relative's Name <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         {...register('relationshipName')}
                         placeholder="Relative's Name"
-                        className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-255 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
+                        className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] transition-all shadow-xs"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <div className="w-1/2">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Identity Card <span className="text-red-500">*</span></label>
-                      <select
-                        {...register('identityCardType')}
-                        className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-gray-255 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                        required
-                      >
-                        <option value="">--Select Identity Card--</option>
-                        <option value="Aadhaar Card">Aadhar No</option>
-                        <option value="PAN Card">Pan No</option>
-                        <option value="Voter ID">Voter ID No</option>
-                      </select>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-2">
+                      Identity Proof Type <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: 'Aadhaar Card', label: 'Aadhaar Card' },
+                        { id: 'PAN Card', label: 'PAN Card' },
+                        { id: 'Voter ID', label: 'Voter ID' }
+                      ].map(idCard => {
+                        const isSelected = watch('identityCardType') === idCard.id;
+                        return (
+                          <button
+                            key={idCard.id}
+                            type="button"
+                            onClick={() => setValue('identityCardType', idCard.id)}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border cursor-pointer ${
+                              isSelected
+                                ? 'bg-blue-50 dark:bg-blue-950/40 text-[#005BAC] dark:text-tata-blue-light border-[#005BAC] ring-2 ring-[#005BAC]/20 shadow-xs'
+                                : 'bg-gray-50/70 dark:bg-slate-900/40 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            <FileText size={13} />
+                            <span>{idCard.label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div className="w-1/2">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Identity Card No <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        {...register('identityCardNumber')}
-                        placeholder="Aadhar No/PAN/Voter ID"
-                        className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-255 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                        required
-                      />
-                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">Identity Card Number <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      {...register('identityCardNumber')}
+                      placeholder="Enter Aadhaar / PAN / Voter ID Number"
+                      className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] transition-all shadow-xs"
+                      required
+                    />
                   </div>
 
                   <div>
@@ -2568,12 +2668,12 @@ export const NewApplication: React.FC = () => {
 
                 {/* Right Column */}
                 <div className="space-y-3">
-                  <div className="p-2.5 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
+                  <div className="p-3 bg-gray-50/70 dark:bg-slate-900/60 rounded-2xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
                     <div className="flex-1 min-w-0">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 leading-normal truncate">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 truncate">
                         Premises Photo <span className="text-[10px] text-red-500 font-bold">(Size 14x8 cm)</span>
                       </label>
-                      <span className="text-[10px] text-gray-400 block truncate">
+                      <span className="text-[11px] text-gray-400 block truncate mt-0.5">
                         {uploadedFiles['Photo of Premises']?.name || 'No file chosen'}
                       </span>
                     </div>
@@ -2587,19 +2687,20 @@ export const NewApplication: React.FC = () => {
                       />
                       <label
                         htmlFor="file-premises-lt"
-                        className="px-3 py-1.5 bg-[#4B3E9E] text-white text-[10px] font-black rounded-lg cursor-pointer hover:bg-[#3b3082] transition whitespace-nowrap"
+                        className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition whitespace-nowrap flex items-center space-x-1.5"
                       >
-                        Choose file
+                        <Upload size={13} />
+                        <span>Choose File</span>
                       </label>
                     </div>
                   </div>
 
-                  <div className="p-2.5 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
+                  <div className="p-3 bg-gray-50/70 dark:bg-slate-900/60 rounded-2xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
                     <div className="flex-1 min-w-0">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 leading-normal truncate">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 truncate">
                         Passport Photo <span className="text-red-500 font-bold">*</span>
                       </label>
-                      <span className="text-[10px] text-gray-400 block truncate">
+                      <span className="text-[11px] text-gray-400 block truncate mt-0.5">
                         {uploadedFiles['Passport Photo']?.name || 'No file chosen'}
                       </span>
                     </div>
@@ -2613,19 +2714,20 @@ export const NewApplication: React.FC = () => {
                       />
                       <label
                         htmlFor="file-passport-lt"
-                        className="px-3 py-1.5 bg-[#4B3E9E] text-white text-[10px] font-black rounded-lg cursor-pointer hover:bg-[#3b3082] transition whitespace-nowrap"
+                        className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition whitespace-nowrap flex items-center space-x-1.5"
                       >
-                        Choose file
+                        <Upload size={13} />
+                        <span>Choose File</span>
                       </label>
                     </div>
                   </div>
 
-                  <div className="p-2.5 bg-gray-55 dark:bg-slate-900/40 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
+                  <div className="p-3 bg-gray-50/70 dark:bg-slate-900/60 rounded-2xl border border-gray-200 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
                     <div className="flex-1 min-w-0">
-                      <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 leading-normal truncate">
-                        AADHAR <span className="text-[10px] text-gray-400 font-medium">(Optional)</span>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 truncate">
+                        Aadhaar Document <span className="text-[10px] text-gray-400 font-medium">(Optional)</span>
                       </label>
-                      <span className="text-[10px] text-gray-400 block truncate">
+                      <span className="text-[11px] text-gray-400 block truncate mt-0.5">
                         {uploadedFiles['Aadhaar Card']?.name || 'No file chosen'}
                       </span>
                     </div>
@@ -2639,9 +2741,10 @@ export const NewApplication: React.FC = () => {
                       />
                       <label
                         htmlFor="file-aadhar-lt"
-                        className="px-3 py-1.5 bg-[#4B3E9E] text-white text-[10px] font-black rounded-lg cursor-pointer hover:bg-[#3b3082] transition whitespace-nowrap"
+                        className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition whitespace-nowrap flex items-center space-x-1.5"
                       >
-                        Choose file
+                        <Upload size={13} />
+                        <span>Choose File</span>
                       </label>
                     </div>
                   </div>
@@ -2795,11 +2898,11 @@ export const NewApplication: React.FC = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                   {['Land Ownership Proof', 'Identity Proof Document', 'Recent Utility Bill'].map((docType) => (
-                    <div key={docType} className="p-2.5 bg-gray-50 dark:bg-slate-900/40 rounded-xl border border-gray-255 dark:border-slate-700 flex justify-between items-center text-xs">
+                    <div key={docType} className="p-3 bg-gray-50/70 dark:bg-slate-900/60 rounded-2xl border border-gray-200 dark:border-slate-700 flex justify-between items-center text-xs">
                       <div className="text-left max-w-[70%]">
-                        <span className="block font-bold text-gray-770 dark:text-gray-300 truncate">{docType} *</span>
-                        <span className="text-[10px] text-gray-400 block mt-0.5 truncate">
-                          {uploadedFiles[docType]?.name || 'Not Uploaded'}
+                        <span className="block font-bold text-gray-700 dark:text-gray-200 truncate">{docType} *</span>
+                        <span className="text-[11px] text-gray-400 block mt-0.5 truncate">
+                          {uploadedFiles[docType]?.name || 'No file chosen'}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -2812,9 +2915,10 @@ export const NewApplication: React.FC = () => {
                         />
                         <label
                           htmlFor={`file-${docType}-lt`}
-                          className="px-3 py-1 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-[10px] font-bold rounded cursor-pointer whitespace-nowrap transition"
+                          className="px-4 py-2 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs transition whitespace-nowrap flex items-center space-x-1.5"
                         >
-                          Upload
+                          <Upload size={13} />
+                          <span>Choose File</span>
                         </label>
                       </div>
                     </div>
@@ -3570,50 +3674,50 @@ export const NewApplication: React.FC = () => {
           </div>
         )}
 
-        {/* Footer Navigation Buttons inside the main form container */}
-        <div className="border-t border-gray-150 dark:border-slate-700/60 pt-6 mt-8 flex justify-between items-center">
-          
-          {/* Save Draft */}
-          <button
-            type="button"
-            onClick={() => saveDraftPayload(false)}
-            className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition"
-          >
-            Save as Draft
-          </button>
-
-          {/* Stepper directions */}
-          <div className="flex space-x-3">
-            {currentStep > 1 && (
+        {/* Footer Navigation Buttons matching Reference Image 2 */}
+        <div className="border-t border-gray-150 dark:border-slate-750 pt-6 mt-8 flex justify-between items-center">
+          <div>
+            {currentStep > 1 ? (
               <button
                 type="button"
                 onClick={() => handleStepNavigation('prev')}
-                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-750 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-lg transition"
+                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <ArrowLeft size={14} className="inline mr-1" /> Previous
+                <ArrowLeft size={14} /> Back
               </button>
-            )}
+            ) : <div />}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => saveDraftPayload(false)}
+              className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
+            >
+              Save Draft
+            </button>
 
             {currentStep < steps.length ? (
               <button
                 type="button"
                 onClick={() => handleStepNavigation('next')}
-                className="px-5 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
+                className="px-6 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
               >
-                Next <ArrowRight size={14} className="inline ml-1" />
+                <span>Continue</span>
+                <ArrowRight size={14} />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={onSubmit}
                 disabled={isSubmitting}
-                className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition flex items-center"
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Application'} <CheckCircle2 size={14} className="ml-2" />
+                <span>{isSubmitting ? 'Submitting...' : 'Submit Application'}</span>
+                <CheckCircle2 size={16} />
               </button>
             )}
           </div>
-
         </div>
 
       </div>

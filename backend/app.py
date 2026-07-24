@@ -6,7 +6,79 @@ import os
 import sys
 import random
 import time
+import csv
 from datetime import datetime
+
+def load_csv_mock_applications():
+    csv_paths = [
+        os.path.join(os.path.dirname(__file__), "..", "mock_data.csv"),
+        os.path.join(os.path.dirname(__file__), "mock_data.csv"),
+        "mock_data.csv"
+    ]
+    
+    csv_file = None
+    for p in csv_paths:
+        if os.path.exists(p):
+            csv_file = p
+            break
+            
+    items = []
+    if csv_file:
+        try:
+            with open(csv_file, mode='r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for idx, row in enumerate(reader):
+                    app_num = row.get("Appl. No.", "").strip()
+                    if not app_num:
+                        continue
+                    applicant = row.get("Applicant", "").strip() or f"Applicant {idx+1}"
+                    service_type = row.get("Service Type", "").strip() or "New LT Connection"
+                    status = row.get("Status", "").strip() or "InProgress"
+                    stage = row.get("Stage", "").strip() or "Application Verification"
+                    pending_at = row.get("Pending At", "").strip() or "Abhishek"
+                    address = row.get("Address", "").strip() or "Jamshedpur"
+                    phone = row.get("Phone No", "").strip() or "9876543210"
+                    business_area = row.get("Business Area", "").strip() or "JAMSHEDPUR"
+                    bp_no = row.get("BP/Consumer No.", "").strip()
+
+                    items.append({
+                        "id": f"app_csv_{idx+1}",
+                        "applicationNumber": app_num,
+                        "customerId": (idx % 5) + 2,
+                        "customerName": applicant,
+                        "fullName": applicant,
+                        "customerEmail": f"applicant_{app_num}@tatauisl.com",
+                        "customerMobile": phone,
+                        "existingBpNo": bp_no if bp_no and bp_no != "-" else "",
+                        "businessArea": business_area,
+                        "division": "Electricity",
+                        "addressLine1": address,
+                        "city": business_area or "Jamshedpur",
+                        "state": "Jharkhand",
+                        "district": "East Singhbhum",
+                        "pinCode": "831001",
+                        "connectionTypeId": 1,
+                        "connectionTypeName": service_type,
+                        "connectionCategory": "Domestic" if "LT" in service_type or "Name" in service_type else "Commercial",
+                        "applicationType": service_type,
+                        "currentStatus": status,
+                        "currentStage": stage,
+                        "priority": "Medium",
+                        "assignedOfficer": pending_at,
+                        "submittedDate": "2026-06-26T10:00:00Z",
+                        "profileCompletion": 85,
+                        "documents": [
+                            { "id": f"doc_csv_{idx}_1", "documentType": "Aadhaar Card", "fileName": f"aadhaar_{app_num}.pdf", "fileSize": 1024000, "filePath": "#", "verificationStatus": "Pending", "uploadedAt": "2026-06-26T10:00:00Z" },
+                            { "id": f"doc_csv_{idx}_2", "documentType": "PAN Card", "fileName": f"pan_{app_num}.jpg", "fileSize": 450000, "filePath": "#", "verificationStatus": "Pending", "uploadedAt": "2026-06-26T10:00:00Z" },
+                            { "id": f"doc_csv_{idx}_3", "documentType": "Electricity Bill", "fileName": f"bill_{app_num}.pdf", "fileSize": 540000, "filePath": "#", "verificationStatus": "Pending", "uploadedAt": "2026-06-26T10:00:00Z" }
+                        ],
+                        "remarks": []
+                    })
+        except Exception as err:
+            print("Error loading mock_data.csv:", err)
+    return items
+
+CSV_APPLICATIONS = load_csv_mock_applications()
 
 try:
     from flask import Flask, request, jsonify
@@ -21,12 +93,12 @@ CORS(app) # Allow cross-origin requests from React frontend
 
 # In-Memory Datastores
 USERS = [
-    { "id": 1, "fullName": "System Administrator", "email": "admin@tatauisl.com", "mobileNumber": "9999999999", "role": "Admin", "officerRole": "SuperAdmin", "isActive": True, "createdAt": "2026-01-01T10:00:00Z", "password": "Admin@123" },
-    { "id": 2, "fullName": "Rajesh Kumar", "email": "rajesh.kumar@gmail.com", "mobileNumber": "9876543210", "role": "Customer", "officerRole": "Customer", "isActive": True, "createdAt": "2026-06-01T12:00:00Z", "password": "Customer@123" },
-    { "id": 3, "fullName": "Priya Sharma", "email": "priya.sharma@yahoo.com", "mobileNumber": "8765432109", "role": "Customer", "officerRole": "Customer", "isActive": True, "createdAt": "2026-06-10T14:30:00Z", "password": "Customer@123" },
-    { "id": 4, "fullName": "Officer 1 - Doc Verifier", "email": "officer1@tatauisl.com", "mobileNumber": "9988776651", "role": "Admin", "officerRole": "Officer1", "isActive": True, "createdAt": "2026-06-10T14:30:00Z", "password": "Admin@123" },
-    { "id": 5, "fullName": "Officer 2 - Tech Surveyor", "email": "officer2@tatauisl.com", "mobileNumber": "9988776652", "role": "Admin", "officerRole": "Officer2", "isActive": True, "createdAt": "2026-06-10T14:30:00Z", "password": "Admin@123" },
-    { "id": 6, "fullName": "Officer 3 - Approval Officer", "email": "officer3@tatauisl.com", "mobileNumber": "9988776653", "role": "Admin", "officerRole": "Officer3", "isActive": True, "createdAt": "2026-06-10T14:30:00Z", "password": "Admin@123" }
+    { "id": 1, "fullName": "System Administrator", "email": "admin@tatauisl.com", "mobileNumber": "9999999999", "role": "Admin", "officerRole": "SuperAdmin", "employeeId": "EMP001", "isActive": True, "createdAt": "2026-01-01T10:00:00Z", "password": "Admin@123" },
+    { "id": 2, "fullName": "Rajesh Kumar", "email": "rajesh.kumar@gmail.com", "mobileNumber": "9876543210", "role": "Customer", "officerRole": "Customer", "employeeId": "", "isActive": True, "createdAt": "2026-06-01T12:00:00Z", "password": "Customer@123" },
+    { "id": 3, "fullName": "Priya Sharma", "email": "priya.sharma@yahoo.com", "mobileNumber": "8765432109", "role": "Customer", "officerRole": "Customer", "employeeId": "", "isActive": True, "createdAt": "2026-06-10T14:30:00Z", "password": "Customer@123" },
+    { "id": 4, "fullName": "Officer 1 - Doc Verifier", "email": "officer1@tatauisl.com", "mobileNumber": "9988776651", "role": "Admin", "officerRole": "Officer1", "employeeId": "EMP002", "isActive": True, "createdAt": "2026-06-10T14:30:00Z", "password": "Admin@123" },
+    { "id": 5, "fullName": "Officer 2 - Tech Surveyor", "email": "officer2@tatauisl.com", "mobileNumber": "9988776652", "role": "Admin", "officerRole": "Officer2", "employeeId": "EMP003", "isActive": True, "createdAt": "2026-06-10T14:30:00Z", "password": "Admin@123" },
+    { "id": 6, "fullName": "Officer 3 - Approval Officer", "email": "officer3@tatauisl.com", "mobileNumber": "9988776653", "role": "Admin", "officerRole": "Officer3", "employeeId": "EMP004", "isActive": True, "createdAt": "2026-06-10T14:30:00Z", "password": "Admin@123" }
 ]
 
 CONNECTION_TYPES = [
@@ -171,6 +243,9 @@ APPLICATIONS = [
     }
 ]
 
+# Merge 100 CSV mock entries
+APPLICATIONS.extend(CSV_APPLICATIONS)
+
 NOTIFICATIONS = [
     { "id": "not_001", "userId": 2, "title": "Application Submitted Successfully", "message": "Your application TATA-UISL-2026-98124 has been submitted. Tracking has been initialized.", "type": "Success", "isRead": True, "createdAt": "2026-06-15T09:25:00Z" },
     { "id": "not_002", "userId": 2, "title": "Connection Setup Scheduled", "message": "An installation officer is scheduled to visit your property on 2026-06-19.", "type": "Info", "isRead": True, "createdAt": "2026-06-18T10:00:00Z" },
@@ -199,19 +274,77 @@ SETTINGS = {
     "supportPhone": "1800-345-6789"
 }
 
-def write_audit_log(user_id, user_name, action, table_name, record_id=None, details=""):
+USER_SESSIONS = []
+
+def write_audit_log(user_id, user_name, action, table_name, record_id=None, details="", status="Success", before_json=None, after_json=None, module=None):
+    # Try parsing user details from global state
+    user = next((u for u in USERS if u["id"] == user_id), None) if user_id else None
+    employee_id = user.get("employeeId", "") if user else ""
+    role = user.get("role", "Customer") if user else "Customer"
+    
+    # Request-context details
+    ip = "127.0.0.1"
+    browser = "Unknown Browser"
+    os_name = "Unknown OS"
+    device = "Desktop"
+    ticket_id = None
+    ticket_num = None
+    approved_by = None
+    
+    try:
+        from flask import request
+        if request:
+            ip = request.remote_addr or "127.0.0.1"
+            ua = request.headers.get("User-Agent", "")
+            
+            # OS parsing
+            if "Windows" in ua: os_name = "Windows"
+            elif "Macintosh" in ua or "Mac OS" in ua: os_name = "macOS"
+            elif "Android" in ua: os_name = "Android"
+            elif "iPhone" in ua or "iPad" in ua: os_name = "iOS"
+            elif "Linux" in ua: os_name = "Linux"
+            
+            # Browser parsing
+            if "Firefox" in ua: browser = "Firefox"
+            elif "Chrome" in ua: browser = "Chrome"
+            elif "Safari" in ua and "Chrome" not in ua: browser = "Safari"
+            elif "Edge" in ua: browser = "Edge"
+            
+            # Device parsing
+            device = "Mobile" if "Mobile" in ua else "Desktop"
+            
+            # Support tickets custom headers
+            ticket_id = request.headers.get("X-Ticket-ID")
+            ticket_num = request.headers.get("X-Ticket-Number")
+            approved_by = request.headers.get("X-Approved-By")
+    except Exception:
+        pass
+
     log = {
         "id": f"log_{int(time.time() * 1000)}",
         "userId": user_id,
+        "employeeId": employee_id,
         "userName": user_name,
+        "role": role,
+        "module": module or table_name,
         "action": action,
         "tableName": table_name,
         "recordId": str(record_id) if record_id else None,
         "timestamp": datetime.utcnow().isoformat() + "Z",
-        "ipAddress": "127.0.0.1",
+        "ipAddress": ip,
+        "browser": browser,
+        "operatingSystem": os_name,
+        "device": device,
+        "status": status,
+        "ticketId": ticket_id,
+        "ticketNumber": ticket_num,
+        "approvedBy": approved_by,
+        "beforeJson": before_json,
+        "afterJson": after_json,
         "details": details
     }
     AUDIT_LOGS.insert(0, log)
+
 
 def add_notification(user_id, title, message, type_val="Info"):
     notif = {
@@ -282,11 +415,54 @@ def login():
         return jsonify({ "message": "Invalid password for Administrator." }), 401
     
     token = f"mock_jwt_token_{user['id']}_{int(time.time())}"
+    
+    # Session Details
+    import uuid
+    session_id = str(uuid.uuid4())
+    
+    ip = request.remote_addr or "127.0.0.1"
+    ua = request.headers.get("User-Agent", "")
+    
+    # OS parsing
+    os_name = "Unknown OS"
+    if "Windows" in ua: os_name = "Windows"
+    elif "Macintosh" in ua or "Mac OS" in ua: os_name = "macOS"
+    elif "Android" in ua: os_name = "Android"
+    elif "iPhone" in ua or "iPad" in ua: os_name = "iOS"
+    elif "Linux" in ua: os_name = "Linux"
+    
+    # Browser parsing
+    browser = "Unknown Browser"
+    if "Firefox" in ua: browser = "Firefox"
+    elif "Chrome" in ua: browser = "Chrome"
+    elif "Safari" in ua and "Chrome" not in ua: browser = "Safari"
+    elif "Edge" in ua: browser = "Edge"
+    
+    # Device parsing
+    device = "Mobile" if "Mobile" in ua else "Desktop"
+    
+    session = {
+        "id": session_id,
+        "userId": user["id"],
+        "employeeId": user.get("employeeId", ""),
+        "role": user["role"],
+        "loginTimestamp": datetime.utcnow().isoformat() + "Z",
+        "logoutTimestamp": None,
+        "browserClosureTimestamp": None,
+        "isTimeout": False,
+        "ipAddress": ip,
+        "browser": browser,
+        "operatingSystem": os_name,
+        "device": device,
+        "sessionDuration": None
+    }
+    
+    USER_SESSIONS.append(session)
     write_audit_log(user["id"], user["fullName"], "Login", "Users", user["id"], "Successful login")
     
     # Return user details without password
     user_resp = {k: v for k, v in user.items() if k != "password"}
-    return jsonify({ "token": token, "user": user_resp })
+    return jsonify({ "token": token, "user": user_resp, "sessionId": session_id })
 
 @app.route("/api/auth/verify-otp", methods=["POST"])
 def verify_otp():
@@ -303,6 +479,38 @@ def forgot_password():
     if not any(u["email"].lower() == email.lower() for u in USERS):
         return jsonify({ "message": "No user found with this email." }), 400
     return jsonify({ "message": "Password reset link sent to your registered email." })
+
+@app.route("/api/auth/logout", methods=["POST"])
+def logout():
+    data = request.json or {}
+    session_id = data.get("sessionId")
+    if session_id:
+        session = next((s for s in USER_SESSIONS if s["id"] == session_id), None)
+        if session:
+            session["logoutTimestamp"] = datetime.utcnow().isoformat() + "Z"
+            t1 = datetime.fromisoformat(session["loginTimestamp"].replace("Z", ""))
+            t2 = datetime.utcnow()
+            session["sessionDuration"] = int((t2 - t1).total_seconds())
+            
+            user = next((u for u in USERS if u["id"] == session["userId"]), None)
+            write_audit_log(session["userId"], user["fullName"] if user else "User", "Logout", "UserSessions", session["id"], f"User logged out. Session duration: {session['sessionDuration']}s.")
+    return jsonify({ "message": "Logged out successfully" })
+
+@app.route("/api/auth/session-close", methods=["POST"])
+def session_close():
+    data = request.json or {}
+    session_id = data.get("sessionId")
+    if session_id:
+        session = next((s for s in USER_SESSIONS if s["id"] == session_id), None)
+        if session and not session["logoutTimestamp"] and not session["browserClosureTimestamp"]:
+            session["browserClosureTimestamp"] = datetime.utcnow().isoformat() + "Z"
+            t1 = datetime.fromisoformat(session["loginTimestamp"].replace("Z", ""))
+            t2 = datetime.utcnow()
+            session["sessionDuration"] = int((t2 - t1).total_seconds())
+            
+            user = next((u for u in USERS if u["id"] == session["userId"]), None)
+            write_audit_log(session["userId"], user["fullName"] if user else "User", "Browser Closure", "UserSessions", session["id"], f"Browser closed. Session duration: {session['sessionDuration']}s.")
+    return jsonify({ "message": "Session closed successfully" })
 
 # --- APPLICATION MODULE ---
 @app.route("/api/applications", methods=["GET"])
@@ -772,9 +980,7 @@ def reset_customer_password(id):
     write_audit_log(admin["id"] if admin else 1, admin["fullName"] if admin else "Admin", "Reset Password", "Users", id, f"Generated reset token for: {user['email']}")
     return jsonify({ "message": f"Password reset link/token generated successfully for {user['fullName']}." })
 
-@app.route("/api/admin/audit-logs", methods=["GET"])
-def get_audit_logs():
-    return jsonify(AUDIT_LOGS)
+# Audit logs route moved to end of file
 
 @app.route("/api/admin/notifications", methods=["POST"])
 def send_custom_notification():
@@ -1068,6 +1274,257 @@ def export_report_rows():
             "income": a["annualIncome"]
         })
     return jsonify(rows)
+
+@app.route("/api/admin/audit-logs", methods=["GET"])
+def get_audit_logs():
+    user = get_user_from_headers()
+    if not user or user["role"] != "Admin":
+        return jsonify({ "message": "Forbidden" }), 403
+        
+    start_date = request.args.get("startDate")
+    end_date = request.args.get("endDate")
+    user_filter = request.args.get("user")
+    module_filter = request.args.get("module")
+    action_type = request.args.get("actionType")
+    ticket_num = request.args.get("ticketNumber")
+    ip_addr = request.args.get("ipAddress")
+    app_num = request.args.get("applicationNumber")
+    
+    logs = list(AUDIT_LOGS)
+    
+    if start_date:
+        logs = [l for l in logs if l["timestamp"] >= start_date]
+    if end_date:
+        logs = [l for l in logs if l["timestamp"] <= end_date]
+    if user_filter:
+        user_filter = user_filter.lower()
+        logs = [l for l in logs if user_filter in l["userName"].lower() or (l.get("userId") and str(l["userId"]) == user_filter) or (l.get("employeeId") and user_filter in l["employeeId"].lower())]
+    if module_filter:
+        logs = [l for l in logs if l.get("module") == module_filter or l["tableName"] == module_filter]
+    if action_type:
+        logs = [l for l in logs if l["action"] == action_type]
+    if ticket_num:
+        logs = [l for l in logs if (l.get("ticketNumber") and ticket_num in l["ticketNumber"]) or (l.get("ticketId") and ticket_num == l["ticketId"])]
+    if ip_addr:
+        logs = [l for l in logs if ip_addr in l["ipAddress"]]
+    if app_num:
+        logs = [l for l in logs if l.get("recordId") == app_num or (l.get("details") and app_num in l["details"])]
+        
+    return jsonify(logs)
+
+@app.route("/api/admin/daily-stats", methods=["GET"])
+def get_daily_stats():
+    total_created = len(APPLICATIONS)
+    total_drafts = len([a for a in APPLICATIONS if a.get("currentStatus") == "Draft"])
+    total_submitted = len([a for a in APPLICATIONS if a.get("currentStatus") != "Draft"])
+    total_approved = len([a for a in APPLICATIONS if a.get("currentStatus") in ["Approved", "Completed"]])
+    total_rejected = len([a for a in APPLICATIONS if a.get("currentStatus") == "Rejected"])
+    total_pending = len([a for a in APPLICATIONS if a.get("currentStatus") not in ["Draft", "Completed", "Approved", "Rejected"]])
+    
+    total_returned = len([l for l in AUDIT_LOGS if l["action"] in ["Return", "Returned", "Correction Required"]])
+    total_accepted = len([l for l in AUDIT_LOGS if l["action"] in ["Accept", "Accepted", "Assign", "Approve"]])
+    
+    processed_per_officer = {}
+    for l in AUDIT_LOGS:
+        if l["action"] in ["Approve", "Reject", "Forward Stage", "Update Application"]:
+            o_name = l["userName"]
+            if o_name and o_name != "System":
+                processed_per_officer[o_name] = processed_per_officer.get(o_name, 0) + 1
+                
+    completed_apps = [a for a in APPLICATIONS if a.get("currentStatus") in ["Completed", "Approved"] and a.get("submittedDate")]
+    avg_processing_time_minutes = 0.0
+    if completed_apps:
+        total_time = 0.0
+        for a in completed_apps:
+            try:
+                t1 = datetime.fromisoformat(a["submittedDate"].replace("Z", ""))
+                t2 = datetime.fromisoformat(a["lastUpdated"].replace("Z", ""))
+                total_time += (t2 - t1).total_seconds() / 60.0
+            except:
+                pass
+        avg_processing_time_minutes = round(total_time / len(completed_apps), 1)
+        
+    return jsonify({
+        "totalCreated": total_created,
+        "totalDrafts": total_drafts,
+        "totalSubmitted": total_submitted,
+        "totalApproved": total_approved,
+        "totalRejected": total_rejected,
+        "totalReturned": total_returned,
+        "totalAccepted": total_accepted,
+        "totalPending": total_pending,
+        "processedPerOfficer": processed_per_officer,
+        "avgProcessingTimeMinutes": avg_processing_time_minutes
+    })
+
+# -------------------------------------------------------------
+# SMART DOCUMENT VERIFICATION ENGINE ENDPOINTS
+# -------------------------------------------------------------
+VERIFICATION_STORE = {}
+VERIFICATION_AUDIT_LOGS = []
+
+try:
+    from verification_engine import run_document_verification_engine
+except ImportError:
+    run_document_verification_engine = None
+
+@app.route("/api/verification/process/<app_id>", methods=["POST"])
+def process_document_verification(app_id):
+    user = get_user_from_headers()
+    if not user or user.get("role") != "Admin":
+        return jsonify({ "message": "Unauthorized CRO or Admin access required." }), 403
+        
+    app_record = next((a for a in APPLICATIONS if str(a["id"]) == str(app_id) or a.get("applicationNumber") == app_id), None)
+    if not app_record:
+        return jsonify({ "message": "Application not found" }), 404
+        
+    docs = app_record.get("documents", [])
+    
+    if run_document_verification_engine:
+        verification_data = run_document_verification_engine(app_record, docs)
+    else:
+        # Fallback inline processing
+        verification_data = {
+            "applicationId": app_record.get("id"),
+            "applicationNumber": app_record.get("applicationNumber"),
+            "overallScore": 94,
+            "identityMatchScore": 100,
+            "addressMatchScore": 95,
+            "ocrConfidenceScore": 97,
+            "documentQualityScore": 96,
+            "totalFieldsCompared": 6,
+            "exactMatches": 4,
+            "partialMatches": 1,
+            "mismatches": 0,
+            "missingFields": 0,
+            "verificationStatus": "Verified",
+            "results": [
+                { "fieldName": "Applicant Name", "applicationValue": app_record.get("fullName", "Rahul Sharma"), "documentValue": app_record.get("fullName", "Rahul Sharma"), "matchType": "Exact Match", "matchStatus": "Exact Match", "confidenceScore": 100, "severity": "Low", "differenceNote": "Exact character match.", "suggestedAction": "Auto-verified", "documentType": "Aadhaar Card" },
+                { "fieldName": "Aadhaar Number", "applicationValue": app_record.get("aadhaarNumber", "1234 5678 9012"), "documentValue": app_record.get("aadhaarNumber", "1234 5678 9012"), "matchType": "Exact Match", "matchStatus": "Exact Match", "confidenceScore": 100, "severity": "Low", "differenceNote": "Exact match", "suggestedAction": "Auto-verified", "documentType": "Aadhaar Card" },
+                { "fieldName": "Father's Name", "applicationValue": app_record.get("fatherName", "Ramesh Sharma"), "documentValue": app_record.get("fatherName", "Ramesh") + " Kumar Sharma", "matchType": "Fuzzy Match", "matchStatus": "Partial Match", "confidenceScore": 89, "severity": "Medium", "differenceNote": "'Kumar' middle name in document.", "suggestedAction": "Review manually.", "documentType": "PAN Card" },
+                { "fieldName": "Address", "applicationValue": app_record.get("addressLine1", "Mango, Jamshedpur"), "documentValue": app_record.get("addressLine1", "Mango, Jamshedpur"), "matchType": "Semantic/Address Match", "matchStatus": "Exact Match", "confidenceScore": 97, "severity": "Low", "differenceNote": "Locality verified.", "suggestedAction": "Verified.", "documentType": "Electricity Bill" },
+                { "fieldName": "PAN Number", "applicationValue": app_record.get("panNumber", "ABCDE1234F"), "documentValue": app_record.get("panNumber", "ABCDE1234F"), "matchType": "Exact Match", "matchStatus": "Exact Match", "confidenceScore": 100, "severity": "Low", "differenceNote": "Exact match.", "suggestedAction": "Auto-verified", "documentType": "PAN Card" }
+            ],
+            "extractedDocuments": [
+                { "documentType": "Aadhaar Card", "confidenceScore": 98, "extractedFields": { "Name": app_record.get("fullName"), "Aadhaar Number": app_record.get("aadhaarNumber"), "DOB": app_record.get("dateOfBirth"), "Address": app_record.get("addressLine1") } },
+                { "documentType": "PAN Card", "confidenceScore": 96, "extractedFields": { "Name": app_record.get("fullName"), "PAN Number": app_record.get("panNumber"), "Father Name": app_record.get("fatherName") } }
+            ],
+            "qualityMetrics": [
+                { "documentType": "Aadhaar Card", "blurScore": 95, "resolutionScore": 98, "rotationAngle": 0, "isCropped": False, "isDuplicate": False, "readabilityScore": 97, "overallQualityScore": 96, "qualityStatus": "High Quality" },
+                { "documentType": "PAN Card", "blurScore": 94, "resolutionScore": 96, "rotationAngle": 0, "isCropped": False, "isDuplicate": False, "readabilityScore": 95, "overallQualityScore": 95, "qualityStatus": "High Quality" }
+            ],
+            "systemRecommendations": [
+                "Identity match verified with 100% confidence.",
+                "Address verified successfully against premises locality.",
+                "Father's name contains middle name variation ('Kumar'); manual CRO review option available.",
+                "System Recommendation: Eligible for Verification Approval."
+            ],
+            "processedAt": datetime.utcnow().isoformat() + "Z"
+        }
+        
+    VERIFICATION_STORE[str(app_record["id"])] = verification_data
+    return jsonify(verification_data)
+
+@app.route("/api/verification/results/<app_id>", methods=["GET"])
+def get_document_verification(app_id):
+    app_record = next((a for a in APPLICATIONS if str(a["id"]) == str(app_id) or a.get("applicationNumber") == app_id), None)
+    if not app_record:
+        return jsonify({ "message": "Application not found" }), 404
+        
+    key = str(app_record["id"])
+    return process_document_verification(key)
+
+@app.route("/api/verification/action", methods=["POST"])
+def submit_verification_action():
+    user = get_user_from_headers()
+    if not user or user.get("role") != "Admin":
+        return jsonify({ "message": "Unauthorized" }), 403
+        
+    data = request.json or {}
+    app_id = data.get("applicationId")
+    action = data.get("action") # Approve, Reject, Request Re-upload, Request Additional Document, Manual Override
+    remarks = data.get("remarks", "").strip()
+    is_override = data.get("isOverride", False)
+    
+    if (is_override or action == "Manual Override") and not remarks:
+        return jsonify({ "message": "Mandatory remarks required for Manual Override." }), 400
+        
+    app_record = next((a for a in APPLICATIONS if str(a["id"]) == str(app_id) or a.get("applicationNumber") == app_id), None)
+    if not app_record:
+        return jsonify({ "message": "Application not found" }), 404
+        
+    prev_status = app_record.get("currentStage", "Document Verification")
+    
+    if action == "Approve" or action == "Manual Override":
+        app_record["currentStage"] = "Load Survey"
+        app_record["currentStatus"] = "Under Survey"
+        for doc in app_record.get("documents", []):
+            doc["verificationStatus"] = "Verified"
+    elif action == "Reject":
+        app_record["currentStatus"] = "Rejected"
+        for doc in app_record.get("documents", []):
+            doc["verificationStatus"] = "Rejected"
+            doc["rejectionReason"] = remarks or "Document verification rejected by CRO."
+    elif action in ["Request Re-upload", "Request Additional Document"]:
+        app_record["currentStatus"] = "Correction Required"
+        for doc in app_record.get("documents", []):
+            if doc.get("verificationStatus") != "Verified":
+                doc["verificationStatus"] = "Rejected"
+                doc["rejectionReason"] = remarks or "Re-upload requested by CRO."
+                
+    # Update verification store
+    v_data = VERIFICATION_STORE.get(str(app_record["id"]), {})
+    v_data["decision"] = action
+    v_data["decisionRemarks"] = remarks
+    v_data["isOverridden"] = is_override
+    v_data["verifiedByName"] = user.get("fullName", "CRO Officer")
+    v_data["verifiedAt"] = datetime.utcnow().isoformat() + "Z"
+    v_data["verificationStatus"] = "Verified" if action in ["Approve", "Manual Override"] else "Rejected"
+    VERIFICATION_STORE[str(app_record["id"])] = v_data
+
+    # Log audit event
+    audit_entry = {
+        "id": len(VERIFICATION_AUDIT_LOGS) + 1,
+        "userId": user.get("id"),
+        "employeeId": user.get("employeeId", "EMP-CRO"),
+        "userName": user.get("fullName"),
+        "applicationNumber": app_record.get("applicationNumber"),
+        "action": f"Document Verification: {action}",
+        "verificationScore": v_data.get("overallScore", 94),
+        "previousStatus": prev_status,
+        "newStatus": app_record.get("currentStage"),
+        "isOverride": is_override,
+        "remarks": remarks,
+        "ipAddress": request.remote_addr or "127.0.0.1",
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+    VERIFICATION_AUDIT_LOGS.append(audit_entry)
+    AUDIT_LOGS.append({
+        "id": f"log_ver_{len(AUDIT_LOGS)+100}",
+        "userId": user.get("id"),
+        "userName": user.get("fullName"),
+        "employeeId": user.get("employeeId"),
+        "role": user.get("role"),
+        "module": "Document Verification",
+        "action": f"Verification {action}",
+        "tableName": "DocumentVerification",
+        "recordId": app_record.get("applicationNumber"),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "ipAddress": request.remote_addr or "127.0.0.1",
+        "details": f"CRO Decision: {action}. Score: {v_data.get('overallScore', 94)}%. Remarks: {remarks or 'None'}"
+    })
+    
+    return jsonify({
+        "success": True,
+        "message": f"Verification action '{action}' recorded successfully.",
+        "application": app_record,
+        "verification": v_data
+    })
+
+@app.route("/api/verification/audit/<app_id>", methods=["GET"])
+def get_verification_audit_logs(app_id):
+    logs = [l for l in VERIFICATION_AUDIT_LOGS if l.get("applicationNumber") == app_id or str(l.get("applicationId")) == str(app_id)]
+    return jsonify(logs)
 
 if __name__ == "__main__":
     print("---------------------------------------------------------")

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
-  Clipboard, Clock, CheckCircle2, AlertCircle, Upload, MessageSquare
+  Clipboard, AlertCircle, Upload, MessageSquare
 } from 'lucide-react';
 import { applicationService, documentService } from '../services/api';
 import type { Application } from '../services/mockData';
 import { toast } from 'react-toastify';
+import { TataWorkflowTimeline } from '../components/TataWorkflowTimeline';
 
 export const TrackApplication: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -53,46 +54,6 @@ export const TrackApplication: React.FC = () => {
   const handleAppChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const found = applications.find(a => a.id === e.target.value);
     if (found) setSelectedApp(found);
-  };
-
-  const getTimelineSteps = (currentStatus: Application['currentStatus']) => {
-    const allSteps = [
-      { name: 'Application Submitted', key: 'Submitted', desc: 'Your connection request was successfully registered in the system.' },
-      { name: 'Document Verification', key: 'Document Verification', desc: 'Our desk officers are auditing your submitted Aadhaar, PAN, and property deeds.' },
-      { name: 'Under Review', key: 'Under Review', desc: 'A field engineer is assigned to audit your site dimensions and grid distance.' },
-      { name: 'Approved / Rejected', key: 'Approved_Rejected', desc: 'Final approval signoff or rejection notice with remarks.' },
-      { name: 'Connection Completed', key: 'Connection Completed', desc: 'Smart meter installed, power grid mapped, and line activated.' }
-    ];
-
-    const getStatusIndex = (status: string) => {
-      if (status === 'Submitted') return 0;
-      if (status === 'Document Verification') return 1;
-      if (status === 'Under Review') return 2;
-      if (status === 'Approved' || status === 'Rejected') return 3;
-      if (status === 'Connection Completed') return 4;
-      return 0;
-    };
-
-    const activeIdx = getStatusIndex(currentStatus);
-
-    return allSteps.map((step, idx) => {
-      let state: 'upcoming' | 'active' | 'completed' = 'upcoming';
-      if (idx < activeIdx) state = 'completed';
-      else if (idx === activeIdx) state = 'active';
-
-      // Custom check for status names
-      let stepName = step.name;
-      if (idx === 3) {
-        if (currentStatus === 'Approved') stepName = 'Approved';
-        else if (currentStatus === 'Rejected') stepName = 'Rejected';
-      }
-
-      return {
-        ...step,
-        name: stepName,
-        state
-      };
-    });
   };
 
   // Re-upload document handler
@@ -189,41 +150,9 @@ export const TrackApplication: React.FC = () => {
       ) : selectedApp && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Left: Timeline Visualizer */}
-          <div className="lg:col-span-8 bg-white dark:bg-slate-800 p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/50 space-y-8">
-            <h3 className="text-xs font-bold text-gray-800 dark:text-white uppercase tracking-wider">Status Pipeline</h3>
-
-            <div className="relative border-l-2 border-gray-100 dark:border-slate-700 ml-4 pl-8 space-y-8">
-              {getTimelineSteps(selectedApp.currentStatus).map((step, index) => {
-                const isCompleted = step.state === 'completed';
-                const isActive = step.state === 'active';
-                const isRejectedStep = step.name === 'Rejected' && selectedApp.currentStatus === 'Rejected';
-
-                return (
-                  <div key={index} className="relative">
-                    {/* Timeline Node Icon */}
-                    <div className={`absolute -left-[43px] top-0 h-7 w-7 rounded-full flex items-center justify-center border-2 transition-colors ${
-                      isCompleted 
-                        ? 'bg-green-500 border-green-500 text-white' 
-                        : isActive 
-                          ? isRejectedStep
-                            ? 'bg-red-500 border-red-500 text-white animate-pulse'
-                            : 'bg-tata-blue border-tata-blue text-white animate-pulse'
-                          : 'bg-white border-gray-200 text-gray-300 dark:bg-slate-800 dark:border-slate-700'
-                    }`}>
-                      {isCompleted ? <CheckCircle2 size={14} /> : <Clock size={12} />}
-                    </div>
-
-                    <div className="space-y-1.5 text-left">
-                      <h4 className={`text-xs font-bold ${isActive ? isRejectedStep ? 'text-red-500' : 'text-tata-blue dark:text-tata-blue-light' : isCompleted ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400'}`}>
-                        {step.name}
-                      </h4>
-                      <p className="text-[11px] text-gray-400 leading-normal max-w-lg">{step.desc}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {/* Left: Official 16-Stage Vertical Timeline Visualizer */}
+          <div className="lg:col-span-8">
+            <TataWorkflowTimeline application={selectedApp} isAdmin={false} />
           </div>
 
           {/* Right: Summary details & Remarks */}

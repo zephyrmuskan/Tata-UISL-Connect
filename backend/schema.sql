@@ -16,6 +16,7 @@ CREATE TABLE [Users] (
     [MobileNumber] NVARCHAR(20) NULL,
     [RoleId] INT NOT NULL,
     [OfficerRole] NVARCHAR(50) NOT NULL DEFAULT 'Customer',
+    [EmployeeId] NVARCHAR(50) NULL,
     [IsActive] BIT NOT NULL DEFAULT 1,
     [CreatedAt] DATETIME NOT NULL DEFAULT GETUTCDATE(),
     CONSTRAINT [FK_Users_Roles_RoleId] FOREIGN KEY ([RoleId]) REFERENCES [Roles]([Id]) ON DELETE RESTRICT
@@ -142,16 +143,46 @@ CREATE TABLE [Notifications] (
     CONSTRAINT [FK_Notifications_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users]([Id]) ON DELETE CASCADE
 );
 
--- 9. AuditLogs Table
+-- 9. UserSessions Table
+CREATE TABLE [UserSessions] (
+    [Id] NVARCHAR(100) NOT NULL PRIMARY KEY,
+    [UserId] INT NOT NULL,
+    [EmployeeId] NVARCHAR(50) NULL,
+    [Role] NVARCHAR(50) NOT NULL,
+    [LoginTimestamp] DATETIME NOT NULL,
+    [LogoutTimestamp] DATETIME NULL,
+    [BrowserClosureTimestamp] DATETIME NULL,
+    [IsTimeout] BIT NOT NULL DEFAULT 0,
+    [IpAddress] NVARCHAR(50) NULL,
+    [Browser] NVARCHAR(255) NULL,
+    [OperatingSystem] NVARCHAR(100) NULL,
+    [Device] NVARCHAR(100) NULL,
+    [SessionDuration] INT NULL,
+    CONSTRAINT [FK_UserSessions_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users]([Id]) ON DELETE CASCADE
+);
+
+-- 10. AuditLogs Table
 CREATE TABLE [AuditLogs] (
     [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [UserId] INT NULL,
+    [EmployeeId] NVARCHAR(50) NULL,
     [UserName] NVARCHAR(100) NOT NULL,
+    [Role] NVARCHAR(50) NULL,
+    [Module] NVARCHAR(100) NULL,
     [Action] NVARCHAR(100) NOT NULL,
     [TableName] NVARCHAR(100) NOT NULL,
     [RecordId] NVARCHAR(50) NULL,
     [Timestamp] DATETIME NOT NULL DEFAULT GETUTCDATE(),
     [IpAddress] NVARCHAR(50) NULL,
+    [Browser] NVARCHAR(255) NULL,
+    [OperatingSystem] NVARCHAR(100) NULL,
+    [Device] NVARCHAR(100) NULL,
+    [Status] NVARCHAR(50) NULL,
+    [TicketId] NVARCHAR(100) NULL,
+    [TicketNumber] NVARCHAR(100) NULL,
+    [ApprovedBy] NVARCHAR(100) NULL,
+    [BeforeJson] NVARCHAR(MAX) NULL,
+    [AfterJson] NVARCHAR(MAX) NULL,
     [Details] NVARCHAR(MAX) NULL,
     CONSTRAINT [FK_AuditLogs_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users]([Id]) ON DELETE SET NULL
 );
@@ -164,16 +195,128 @@ CREATE TABLE [Settings] (
     [Description] NVARCHAR(500) NULL
 );
 
+-- 11. DocumentVerification Table
+CREATE TABLE [DocumentVerification] (
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [ApplicationId] INT NOT NULL,
+    [ApplicationNumber] NVARCHAR(50) NOT NULL,
+    [OverallScore] INT NOT NULL DEFAULT 0,
+    [IdentityMatchScore] INT NOT NULL DEFAULT 0,
+    [AddressMatchScore] INT NOT NULL DEFAULT 0,
+    [OcrConfidenceScore] INT NOT NULL DEFAULT 0,
+    [DocumentQualityScore] INT NOT NULL DEFAULT 0,
+    [TotalFieldsCompared] INT NOT NULL DEFAULT 0,
+    [ExactMatches] INT NOT NULL DEFAULT 0,
+    [PartialMatches] INT NOT NULL DEFAULT 0,
+    [Mismatches] INT NOT NULL DEFAULT 0,
+    [MissingFields] INT NOT NULL DEFAULT 0,
+    [VerificationStatus] NVARCHAR(50) NOT NULL DEFAULT 'Pending',
+    [Decision] NVARCHAR(50) NULL,
+    [DecisionRemarks] NVARCHAR(MAX) NULL,
+    [IsOverridden] BIT NOT NULL DEFAULT 0,
+    [VerifiedById] INT NULL,
+    [VerifiedByName] NVARCHAR(100) NULL,
+    [VerifiedAt] DATETIME NULL,
+    [CreatedAt] DATETIME NOT NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT [FK_DocumentVerification_Applications_ApplicationId] FOREIGN KEY ([ApplicationId]) REFERENCES [Applications]([Id]) ON DELETE CASCADE
+);
+
+-- 12. VerificationResults Table
+CREATE TABLE [VerificationResults] (
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [VerificationId] INT NOT NULL,
+    [FieldName] NVARCHAR(100) NOT NULL,
+    [ApplicationValue] NVARCHAR(500) NULL,
+    [DocumentValue] NVARCHAR(500) NULL,
+    [MatchType] NVARCHAR(50) NOT NULL, -- Exact, Fuzzy, Semantic
+    [MatchStatus] NVARCHAR(50) NOT NULL, -- Exact Match, Partial Match, Mismatch, Missing
+    [ConfidenceScore] INT NOT NULL DEFAULT 0,
+    [Severity] NVARCHAR(20) NOT NULL DEFAULT 'Low', -- Low, Medium, High
+    [DifferenceNote] NVARCHAR(500) NULL,
+    [SuggestedAction] NVARCHAR(500) NULL,
+    [DocumentType] NVARCHAR(100) NULL,
+    CONSTRAINT [FK_VerificationResults_DocumentVerification_VerificationId] FOREIGN KEY ([VerificationId]) REFERENCES [DocumentVerification]([Id]) ON DELETE CASCADE
+);
+
+-- 13. OCRExtractedData Table
+CREATE TABLE [OCRExtractedData] (
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [DocumentId] INT NOT NULL,
+    [DocumentType] NVARCHAR(100) NOT NULL,
+    [RawText] NVARCHAR(MAX) NULL,
+    [ExtractedFieldsJson] NVARCHAR(MAX) NOT NULL,
+    [OcrEngine] NVARCHAR(50) NOT NULL DEFAULT 'Engine Standard OCR',
+    [ConfidenceScore] INT NOT NULL DEFAULT 95,
+    [ExtractedAt] DATETIME NOT NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT [FK_OCRExtractedData_Documents_DocumentId] FOREIGN KEY ([DocumentId]) REFERENCES [Documents]([Id]) ON DELETE CASCADE
+);
+
+-- 14. VerificationHistory Table
+CREATE TABLE [VerificationHistory] (
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [ApplicationId] INT NOT NULL,
+    [Action] NVARCHAR(100) NOT NULL,
+    [PerformedById] INT NOT NULL,
+    [PerformedByName] NVARCHAR(100) NOT NULL,
+    [Score] INT NOT NULL,
+    [Remarks] NVARCHAR(MAX) NULL,
+    [Timestamp] DATETIME NOT NULL DEFAULT GETUTCDATE()
+);
+
+-- 15. VerificationReports Table
+CREATE TABLE [VerificationReports] (
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [ApplicationId] INT NOT NULL,
+    [ReportNumber] NVARCHAR(100) NOT NULL UNIQUE,
+    [OverallScore] INT NOT NULL,
+    [GeneratedByName] NVARCHAR(100) NOT NULL,
+    [GeneratedAt] DATETIME NOT NULL DEFAULT GETUTCDATE(),
+    [PdfFilePath] NVARCHAR(500) NULL
+);
+
+-- 16. DocumentQualityMetrics Table
+CREATE TABLE [DocumentQualityMetrics] (
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [DocumentId] INT NOT NULL,
+    [DocumentType] NVARCHAR(100) NOT NULL,
+    [BlurScore] INT NOT NULL DEFAULT 95,
+    [ResolutionScore] INT NOT NULL DEFAULT 98,
+    [RotationAngle] INT NOT NULL DEFAULT 0,
+    [IsCropped] BIT NOT NULL DEFAULT 0,
+    [IsDuplicate] BIT NOT NULL DEFAULT 0,
+    [HasWatermark] BIT NOT NULL DEFAULT 0,
+    [ReadabilityScore] INT NOT NULL DEFAULT 96,
+    [OverallQualityScore] INT NOT NULL DEFAULT 96,
+    [QualityStatus] NVARCHAR(50) NOT NULL DEFAULT 'High Quality',
+    CONSTRAINT [FK_DocumentQualityMetrics_Documents_DocumentId] FOREIGN KEY ([DocumentId]) REFERENCES [Documents]([Id]) ON DELETE CASCADE
+);
+
+-- 17. VerificationAuditLogs Table
+CREATE TABLE [VerificationAuditLogs] (
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [UserId] INT NULL,
+    [EmployeeId] NVARCHAR(50) NULL,
+    [ApplicationNumber] NVARCHAR(50) NOT NULL,
+    [Action] NVARCHAR(100) NOT NULL,
+    [VerificationScore] INT NOT NULL,
+    [PreviousStatus] NVARCHAR(50) NULL,
+    [NewStatus] NVARCHAR(50) NOT NULL,
+    [IsOverride] BIT NOT NULL DEFAULT 0,
+    [Remarks] NVARCHAR(MAX) NULL,
+    [IpAddress] NVARCHAR(50) NULL,
+    [Timestamp] DATETIME NOT NULL DEFAULT GETUTCDATE()
+);
+
 -- Seed Data Queries
 INSERT INTO [Roles] ([Name]) VALUES ('Admin'), ('Customer');
 
 -- Admin Password: Admin@123 (hashed using SHA-256)
-INSERT INTO [Users] ([FullName], [Email], [PasswordHash], [MobileNumber], [RoleId], [OfficerRole], [IsActive])
+INSERT INTO [Users] ([FullName], [Email], [PasswordHash], [MobileNumber], [RoleId], [OfficerRole], [EmployeeId], [IsActive])
 VALUES 
-('Tata UISL System Admin', 'admin@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '18003456789', 1, 'SuperAdmin', 1),
-('Officer 1 - Doc Verifier', 'officer1@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '9988776651', 1, 'Officer1', 1),
-('Officer 2 - Tech Surveyor', 'officer2@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '9988776652', 1, 'Officer2', 1),
-('Officer 3 - Approval Officer', 'officer3@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '9988776653', 1, 'Officer3', 1);
+('Tata UISL System Admin', 'admin@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '18003456789', 1, 'SuperAdmin', 'EMP001', 1),
+('Officer 1 - Doc Verifier', 'officer1@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '9988776651', 1, 'Officer1', 'EMP002', 1),
+('Officer 2 - Tech Surveyor', 'officer2@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '9988776652', 1, 'Officer2', 'EMP003', 1),
+('Officer 3 - Approval Officer', 'officer3@tatauisl.com', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', '9988776653', 1, 'Officer3', 'EMP004', 1);
 
 INSERT INTO [ConnectionTypes] ([Name], [Category])
 VALUES 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, BookOpen, Truck, Search, History, Settings, CheckSquare, 
+  ArrowLeft, ArrowRight, Droplet, BookOpen, Truck, Search, History, Settings, CheckSquare, 
   ChevronRight, Printer, Check, X, Info
 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -419,183 +419,230 @@ export const WaterTanker: React.FC = () => {
           )}
 
         </div>
-      )}
-
-      {/* 2. Sub-view: Order Booking Form */}
+      )}      {/* 2. Sub-view: Order Booking Form */}
       {activeTab === 'apply' && (
-        <form onSubmit={handleCreateOrder} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-gray-150 dark:border-slate-700/50 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-white uppercase tracking-wider pb-2 border-b border-gray-100 dark:border-slate-700">
-            Book Water Tanker Delivery
-          </h2>
+        <form onSubmit={handleCreateOrder} className="bg-white dark:bg-slate-850 rounded-3xl border border-gray-200 dark:border-slate-750 shadow-xl overflow-hidden text-left">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[500px]">
+            {/* Left 8 Cols: Inputs */}
+            <div className="lg:col-span-8 p-6 md:p-8 space-y-6 border-b lg:border-b-0 lg:border-r border-gray-150 dark:border-slate-750">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-750">
+                <div>
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">Book Water Tanker Delivery</h2>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Fill consumer details and select delivery slot schedule.</p>
+                </div>
+                <span className="text-[10px] font-bold text-[#005BAC] bg-blue-50 dark:bg-blue-950/40 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-900/40">
+                  Tata Utility Dispatch
+                </span>
+              </div>
 
-          <div className="space-y-4">
-            
-            {/* BP Number search */}
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
-              <label className="w-48 text-[11px] font-bold text-gray-750 dark:text-gray-300 text-left">
-                Consumer BP No <span className="text-red-500">*</span>
-              </label>
-              <div className="flex-1 flex gap-2 max-w-md">
-                <input
-                  type="text"
-                  value={bpNo}
-                  onChange={(e) => setBpNo(e.target.value)}
-                  placeholder="Enter BP/Consumer Number"
-                  className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                />
+              <div className="space-y-4">
+                {/* Consumer BP Search */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+                    Consumer BP Number <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2.5 max-w-md">
+                    <input
+                      type="text"
+                      value={bpNo}
+                      onChange={(e) => setBpNo(e.target.value)}
+                      placeholder="Enter BP/Consumer Number"
+                      className="flex-1 px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] focus:border-transparent transition-all shadow-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleBpSearch}
+                      className="px-5 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+                    >
+                      Retrieve Data
+                    </button>
+                  </div>
+                </div>
+
+                {/* Customer Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+                      Customer Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Full Name"
+                      className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] focus:border-transparent transition-all shadow-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+                      Phone / Mobile <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={mobile}
+                      onChange={(e) => setMobile(e.target.value)}
+                      placeholder="Mobile Number"
+                      className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] focus:border-transparent transition-all shadow-xs font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+                      Email ID
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email Address"
+                      className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] focus:border-transparent transition-all shadow-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+                      Purpose of Requirement
+                    </label>
+                    <select
+                      value={purpose}
+                      onChange={(e) => setPurpose(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] focus:border-transparent transition-all shadow-xs"
+                    >
+                      <option value="Residential">Residential</option>
+                      <option value="Commercial">Commercial</option>
+                      <option value="Marriage/Event">Marriage / Social Event</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Delivery Address */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+                    Delivery Address <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    placeholder="Enter complete address coordinates where tanker should arrive"
+                    rows={2}
+                    className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] focus:border-transparent transition-all shadow-xs resize-none"
+                  />
+                </div>
+
+                {/* Capacity Chips Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-2">
+                    Tanker Capacity <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTankerSize('5,000 Litres')}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                        tankerSize === '5,000 Litres'
+                          ? 'border-[#005BAC] bg-blue-50/60 dark:bg-blue-950/40 text-[#005BAC] dark:text-tata-blue-light ring-2 ring-[#005BAC]/20'
+                          : 'border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/30 text-gray-700 dark:text-gray-300 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-left">
+                        <span className="block text-xs font-black">5,000 Litres</span>
+                        <span className="block text-[10px] text-gray-400 font-normal">Standard Residential Tanker</span>
+                      </div>
+                      <span className="text-xs font-black text-[#005BAC]">₹800.00</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTankerSize('9,000 Litres')}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                        tankerSize === '9,000 Litres'
+                          ? 'border-[#005BAC] bg-blue-50/60 dark:bg-blue-950/40 text-[#005BAC] dark:text-tata-blue-light ring-2 ring-[#005BAC]/20'
+                          : 'border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/30 text-gray-700 dark:text-gray-300 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-left">
+                        <span className="block text-xs font-black">9,000 Litres</span>
+                        <span className="block text-[10px] text-gray-400 font-normal">Heavy Event & Commercial</span>
+                      </div>
+                      <span className="text-xs font-black text-[#005BAC]">₹1,200.00</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Slot Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+                      Delivery Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={deliveryDate}
+                      onChange={(e) => setDeliveryDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] focus:border-transparent transition-all shadow-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-200 mb-1.5">
+                      Time Slot <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={deliverySlot}
+                      onChange={(e) => setDeliverySlot(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50/70 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] focus:border-transparent transition-all shadow-xs"
+                    >
+                      <option value="9 AM - 12 PM">9 AM - 12 PM (Morning)</option>
+                      <option value="12 PM - 3 PM">12 PM - 3 PM (Noon)</option>
+                      <option value="3 PM - 6 PM">3 PM - 6 PM (Evening)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit CTA */}
+              <div className="pt-4 flex justify-end">
                 <button
-                  type="button"
-                  onClick={handleBpSearch}
-                  className="px-4 py-1.5 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-[11px] font-bold rounded-lg transition-all"
+                  type="submit"
+                  className="px-7 py-3 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition flex items-center space-x-2 cursor-pointer"
                 >
-                  Retrieve
+                  <span>Submit Order Request</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
 
-            {/* General Fields Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
-              <div>
-                <label className="block text-[11px] font-bold text-gray-750 dark:text-gray-300 mb-1">
-                  Customer Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Full Name"
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                />
+            {/* Right 4 Cols: Side Summary & Price Panel */}
+            <div className="lg:col-span-4 bg-slate-50/70 dark:bg-slate-900/40 p-6 md:p-8 flex flex-col justify-between space-y-6">
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#005BAC] to-blue-700 text-white flex items-center justify-center shadow-lg shadow-blue-900/20">
+                  <Droplet size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Water Tanker Details</h3>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-2 leading-relaxed">
+                    Direct dispatch request from Tata Steel Utilities water distribution fleet to your registered premises.
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-gray-750 dark:text-gray-300 mb-1">
-                  Phone/Mobile <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
-                  placeholder="Mobile Number"
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-gray-750 dark:text-gray-300 mb-1">
-                  Email ID
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email Address"
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-gray-750 dark:text-gray-300 mb-1">
-                  Purpose of Requirement
-                </label>
-                <select
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                >
-                  <option value="Residential">Residential</option>
-                  <option value="Commercial">Commercial</option>
-                  <option value="Marriage/Event">Marriage / Social Event</option>
-                </select>
+              <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-200 dark:border-slate-750 shadow-sm space-y-3">
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Estimated Charges</span>
+                <div className="flex items-baseline space-x-1">
+                  <span className="text-2xl font-black text-[#005BAC] dark:text-tata-blue-light">
+                    ₹{tankerSize === '5,000 Litres' ? '800' : '1,200'}.00
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-semibold">/ delivery</span>
+                </div>
+                <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed border-t border-gray-100 dark:border-slate-700 pt-2.5">
+                  Includes driver allowance, water quality clearance & municipal delivery tax.
+                </p>
               </div>
             </div>
-
-            {/* Delivery address */}
-            <div>
-              <label className="block text-[11px] font-bold text-gray-750 dark:text-gray-300 mb-1">
-                Tanker Delivery Address <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                placeholder="Enter complete address coordinates where tanker should arrive"
-                rows={2}
-                className="w-full max-w-3xl px-3 py-2 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-              />
-            </div>
-
-            {/* Parameters Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl">
-              <div>
-                <label className="block text-[11px] font-bold text-gray-750 dark:text-gray-300 mb-1">
-                  Tanker Capacity <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={tankerSize}
-                  onChange={(e) => setTankerSize(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                >
-                  <option value="5,000 Litres">5,000 Litres (₹800.00)</option>
-                  <option value="9,000 Litres">9,000 Litres (₹1,200.00)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-gray-750 dark:text-gray-300 mb-1">
-                  Delivery Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={deliveryDate}
-                  onChange={(e) => setDeliveryDate(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-gray-750 dark:text-gray-300 mb-1">
-                  Time Slot Slot <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={deliverySlot}
-                  onChange={(e) => setDeliverySlot(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-gray-250 dark:border-slate-700 rounded-md text-[11px] font-semibold focus:border-[#4B3E9E] outline-none"
-                >
-                  <option value="9 AM - 12 PM">9 AM - 12 PM (Morning)</option>
-                  <option value="12 PM - 3 PM">12 PM - 3 PM (Noon)</option>
-                  <option value="3 PM - 6 PM">3 PM - 6 PM (Evening)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Price display card */}
-            <div className="bg-[#4B3E9E]/10 border border-[#4B3E9E]/20 p-4 rounded-xl max-w-3xl flex justify-between items-center text-xs">
-              <div>
-                <span className="font-bold text-[#4B3E9E] dark:text-indigo-400 uppercase tracking-wider block text-[10px]">Estimated Price</span>
-                <span className="text-[10px] text-gray-400 block mt-0.5">Calculated based on delivery slot and volume size.</span>
-              </div>
-              <span className="text-lg font-black text-[#4B3E9E] dark:text-white">
-                ₹{tankerSize === '5,000 Litres' ? '800' : '1,200'}.00
-              </span>
-            </div>
-
           </div>
 
-          <div className="flex gap-3 pt-3">
-            <button
-              type="submit"
-              className="px-5 py-2.5 bg-[#4B3E9E] hover:bg-[#3b3082] text-white text-xs font-bold rounded-lg shadow transition"
-            >
-              Order & Request Approval
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('dashboard')}
-              className="px-5 py-2.5 border border-gray-200 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition"
-            >
-              Cancel
-            </button>
-          </div>
         </form>
       )}
 

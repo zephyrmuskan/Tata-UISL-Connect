@@ -56,13 +56,18 @@ export const authService = {
       const token = 'mock_jwt_token_' + user.id + '_' + Date.now();
       localStorage.setItem('tata_auth_token', token);
       localStorage.setItem('tata_current_user', JSON.stringify(user));
+      const sessionId = mockDb.writeUserSession(user.id, user.role, user.employeeId);
+      localStorage.setItem('tata_session_id', sessionId);
       mockDb.writeAuditLog(user.id, user.fullName, 'Login', 'Users', user.id.toString(), 'Successful login');
       
-      return mockDelay({ token, user });
+      return mockDelay({ token, user, sessionId });
     } else {
       const response = await apiClient.post('/auth/login', { email, password });
       localStorage.setItem('tata_auth_token', response.data.token);
       localStorage.setItem('tata_current_user', JSON.stringify(response.data.user));
+      if (response.data.sessionId) {
+        localStorage.setItem('tata_session_id', response.data.sessionId);
+      }
       return response.data;
     }
   },
@@ -150,13 +155,50 @@ export const authService = {
     return userJson ? JSON.parse(userJson) : null;
   },
 
-  logout: () => {
+  logout: async () => {
+    const sessionId = localStorage.getItem('tata_session_id');
     const user = authService.getCurrentUser();
-    if (user && USE_MOCK_API) {
+
+    if (sessionId) {
+      if (USE_MOCK_API) {
+        mockDb.closeUserSession(sessionId, false, false);
+      } else {
+        try {
+          await apiClient.post('/auth/logout', { sessionId });
+        } catch (e) {
+          console.error("Logout API failed", e);
+        }
+      }
+    } else if (user && USE_MOCK_API) {
       mockDb.writeAuditLog(user.id, user.fullName, 'Logout', 'Users', user.id.toString(), 'Successful logout');
     }
+
     localStorage.removeItem('tata_auth_token');
     localStorage.removeItem('tata_current_user');
+    localStorage.removeItem('tata_session_id');
+  },
+
+  closeSessionBeacon: () => {
+    const sessionId = localStorage.getItem('tata_session_id');
+    if (!sessionId) return;
+
+    if (USE_MOCK_API) {
+      mockDb.closeUserSession(sessionId, false, true);
+    } else {
+      const url = `${API_BASE_URL}/auth/session-close`;
+      const data = JSON.stringify({ sessionId });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, data);
+      } else {
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: data,
+          keepalive: true
+        });
+      }
+    }
+    localStorage.removeItem('tata_session_id');
   }
 };
 
@@ -960,11 +1002,57 @@ export const settingsService = {
     }
   },
 
-  getAuditLogs: async (): Promise<mockDb.AuditLog[]> => {
+  getAuditLogs: async (filters?: {
+    startDate?: string;
+    endDate?: string;
+    user?: string;
+    module?: string;
+    actionType?: string;
+    ticketNumber?: string;
+    ipAddress?: string;
+    applicationNumber?: string;
+  }): Promise<mockDb.AuditLog[]> => {
     if (USE_MOCK_API) {
-      return mockDelay(mockDb.getMockAuditLogs());
+      let logs = mockDb.getMockAuditLogs();
+      if (filters) {
+        if (filters.startDate) {
+          logs = logs.filter(l => l.timestamp >= filters.startDate!);
+        }
+        if (filters.endDate) {
+          logs = logs.filter(l => l.timestamp <= filters.endDate!);
+        }
+        if (filters.user) {
+          const uLower = filters.user.toLowerCase();
+          logs = logs.filter(l => l.userName.toLowerCase().includes(uLower) || l.userId?.toString() === uLower || l.employeeId?.toLowerCase().includes(uLower));
+        }
+        if (filters.module) {
+          logs = logs.filter(l => l.module === filters.module || l.tableName === filters.module);
+        }
+        if (filters.actionType) {
+          logs = logs.filter(l => l.action === filters.actionType);
+        }
+        if (filters.ticketNumber) {
+          logs = logs.filter(l => l.ticketNumber?.includes(filters.ticketNumber!) || l.ticketId === filters.ticketNumber);
+        }
+        if (filters.ipAddress) {
+          logs = logs.filter(l => l.ipAddress.includes(filters.ipAddress!));
+        }
+        if (filters.applicationNumber) {
+          logs = logs.filter(l => l.recordId === filters.applicationNumber || l.details.includes(filters.applicationNumber!));
+        }
+      }
+      return mockDelay(logs);
     } else {
-      const response = await apiClient.get('/admin/audit-logs');
+      const response = await apiClient.get('/admin/audit-logs', { params: filters });
+      return response.data;
+    }
+  },
+
+  getDailyStats: async (): Promise<any> => {
+    if (USE_MOCK_API) {
+      return mockDelay(mockDb.getMockDailyStats());
+    } else {
+      const response = await apiClient.get('/admin/daily-stats');
       return response.data;
     }
   }
@@ -1176,3 +1264,200 @@ export const workflowService = {
     }
   }
 };
+
+// -------------------------------------------------------------
+// DOCUMENT VERIFICATION ENGINE SERVICE
+// -------------------------------------------------------------
+export const verificationService = {
+  processVerification: async (applicationId: string): Promise<mockDb.VerificationSummaryData> => {
+    if (USE_MOCK_API) {
+      return mockDelay(mockDb.getMockVerificationResults(applicationId));
+    } else {
+      const response = await apiClient.post(`/verification/process/${applicationId}`);
+      return response.data;
+    }
+  },
+
+  getVerificationResults: async (applicationId: string): Promise<mockDb.VerificationSummaryData> => {
+    if (USE_MOCK_API) {
+      return mockDelay(mockDb.getMockVerificationResults(applicationId));
+    } else {
+      const response = await apiClient.get(`/verification/results/${applicationId}`);
+      return response.data;
+    }
+  },
+
+  submitVerificationAction: async (payload: {
+    applicationId: string;
+    action: string;
+    remarks?: string;
+    isOverride?: boolean;
+    officerName?: string;
+  }) => {
+    if (USE_MOCK_API) {
+      const result = mockDb.saveMockVerificationDecision(
+        payload.applicationId,
+        payload.action,
+        payload.remarks,
+        payload.isOverride,
+        payload.officerName || 'Officer 1 - Doc Verifier'
+      );
+      return mockDelay(result);
+    } else {
+      const response = await apiClient.post('/verification/action', payload);
+      return response.data;
+    }
+  },
+
+  getVerificationAuditLogs: async (applicationNumber: string): Promise<mockDb.VerificationAuditEntry[]> => {
+    if (USE_MOCK_API) {
+      return mockDelay(mockDb.getMockVerificationAuditLogs(applicationNumber));
+    } else {
+      const response = await apiClient.get(`/verification/audit/${applicationNumber}`);
+      return response.data;
+    }
+  }
+};
+
+export const adminMasterService = {
+  getPageMasters: async (): Promise<mockDb.MenuPageMaster[]> => {
+    if (USE_MOCK_API) {
+      return mockDelay(mockDb.getMockPageMasters());
+    } else {
+      const res = await apiClient.get('/admin/pagemasters');
+      return res.data;
+    }
+  },
+  savePageMaster: async (item: Partial<mockDb.MenuPageMaster>): Promise<mockDb.MenuPageMaster[]> => {
+    if (USE_MOCK_API) {
+      const current = mockDb.getMockPageMasters();
+      if (item.id) {
+        const idx = current.findIndex(p => p.id === item.id);
+        if (idx !== -1) current[idx] = { ...current[idx], ...item };
+      } else {
+        const newItem: mockDb.MenuPageMaster = {
+          id: Date.now(),
+          parentMenu: item.parentMenu || 'Master',
+          menuText: item.menuText || 'New Menu',
+          description: item.description || '',
+          controller: item.controller || '-',
+          method: item.method || '-',
+          textOrder: item.textOrder || (current.length + 1),
+          status: item.status || 'Active',
+          route: item.route || '/admin'
+        };
+        current.push(newItem);
+      }
+      mockDb.setMockPageMasters(current);
+      return mockDelay(current);
+    } else {
+      const res = await apiClient.post('/admin/pagemasters', item);
+      return res.data;
+    }
+  },
+  deletePageMaster: async (id: number): Promise<mockDb.MenuPageMaster[]> => {
+    if (USE_MOCK_API) {
+      const current = mockDb.getMockPageMasters().filter(p => p.id !== id);
+      mockDb.setMockPageMasters(current);
+      return mockDelay(current);
+    } else {
+      const res = await apiClient.delete(`/admin/pagemasters/${id}`);
+      return res.data;
+    }
+  },
+  getRoleMasters: async (): Promise<mockDb.RoleMaster[]> => {
+    if (USE_MOCK_API) {
+      return mockDelay(mockDb.getMockRoleMasters());
+    } else {
+      const res = await apiClient.get('/admin/roles');
+      return res.data;
+    }
+  },
+  saveRoleMaster: async (item: Partial<mockDb.RoleMaster>): Promise<mockDb.RoleMaster[]> => {
+    if (USE_MOCK_API) {
+      const current = mockDb.getMockRoleMasters();
+      if (item.id) {
+        const idx = current.findIndex(r => r.id === item.id);
+        if (idx !== -1) current[idx] = { ...current[idx], ...item };
+      } else {
+        const newRole: mockDb.RoleMaster = {
+          id: Date.now(),
+          roleName: item.roleName || 'New Role',
+          description: item.description || '',
+          status: item.status || 'Active'
+        };
+        current.push(newRole);
+      }
+      mockDb.setMockRoleMasters(current);
+      return mockDelay(current);
+    } else {
+      const res = await apiClient.post('/admin/roles', item);
+      return res.data;
+    }
+  },
+  getUserRoleMappings: async (): Promise<mockDb.UserRoleMapping[]> => {
+    if (USE_MOCK_API) {
+      return mockDelay(mockDb.getMockUserRoleMappings());
+    } else {
+      const res = await apiClient.get('/admin/role-mappings');
+      return res.data;
+    }
+  },
+  saveUserRoleMapping: async (item: Partial<mockDb.UserRoleMapping>): Promise<mockDb.UserRoleMapping[]> => {
+    if (USE_MOCK_API) {
+      const current = mockDb.getMockUserRoleMappings();
+      const idx = current.findIndex(m => m.id === item.id);
+      if (idx !== -1) {
+        current[idx] = { ...current[idx], ...item };
+        mockDb.setMockUserRoleMappings(current);
+      }
+      return mockDelay(current);
+    } else {
+      const res = await apiClient.post('/admin/role-mappings', item);
+      return res.data;
+    }
+  },
+  getMenuRights: async (): Promise<mockDb.RoleMenuRight[]> => {
+    if (USE_MOCK_API) {
+      return mockDelay(mockDb.getMockMenuRights());
+    } else {
+      const res = await apiClient.get('/admin/menu-rights');
+      return res.data;
+    }
+  },
+  saveMenuRights: async (items: mockDb.RoleMenuRight[]): Promise<mockDb.RoleMenuRight[]> => {
+    if (USE_MOCK_API) {
+      mockDb.setMockMenuRights(items);
+      return mockDelay(items);
+    } else {
+      const res = await apiClient.post('/admin/menu-rights', items);
+      return res.data;
+    }
+  },
+  getStageApprovalLevels: async (): Promise<mockDb.StageApprovalLevelSetting[]> => {
+    if (USE_MOCK_API) {
+      return mockDelay(mockDb.getMockStageApprovalLevels());
+    } else {
+      const res = await apiClient.get('/admin/stage-approval-levels');
+      return res.data;
+    }
+  },
+  saveStageApprovalLevel: async (setting: mockDb.StageApprovalLevelSetting): Promise<mockDb.StageApprovalLevelSetting[]> => {
+    if (USE_MOCK_API) {
+      const current = mockDb.getMockStageApprovalLevels();
+      const idx = current.findIndex(s => s.id === setting.id);
+      if (idx !== -1) {
+        current[idx] = setting;
+      } else {
+        current.push({ ...setting, id: Date.now() });
+      }
+      mockDb.setMockStageApprovalLevels(current);
+      return mockDelay(current);
+    } else {
+      const res = await apiClient.post('/admin/stage-approval-levels', setting);
+      return res.data;
+    }
+  }
+};
+
+

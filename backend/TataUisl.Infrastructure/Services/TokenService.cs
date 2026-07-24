@@ -25,7 +25,8 @@ namespace TataUisl.Infrastructure.Services
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Name, user.FullName),
                     new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role?.Name ?? "Customer")
+                    new Claim(ClaimTypes.Role, user.Role?.Name ?? "Customer"),
+                    new Claim("EmployeeId", user.EmployeeId ?? string.Empty)
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using TataUisl.Core.DTOs;
 using TataUisl.Core.Entities;
 using TataUisl.Core.Interfaces;
+using TataUisl.Infrastructure.Data;
 
 namespace TataUisl.Api.Controllers
 {
@@ -19,17 +21,20 @@ namespace TataUisl.Api.Controllers
         private readonly ITokenService _tokenService;
         private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
+        private readonly TataUislDbContext _dbContext;
 
         public AuthController(
             IUnitOfWork unitOfWork,
             ITokenService tokenService,
             INotificationService notificationService,
-            IMapper mapper)
+            IMapper mapper,
+            TataUislDbContext dbContext)
         {
             _unitOfWork = unitOfWork;
             _tokenService = tokenService;
             _notificationService = notificationService;
             _mapper = mapper;
+            _dbContext = dbContext;
         }
 
         [HttpPost("register")]
@@ -103,22 +108,61 @@ namespace TataUisl.Api.Controllers
             var token = _tokenService.GenerateJwtToken(user);
             var userDto = _mapper.Map<UserDto>(user);
 
+            var userAgent = Request.Headers["User-Agent"].ToString() ?? "";
+            string os = "Unknown OS";
+            if (userAgent.Contains("Windows")) os = "Windows";
+            else if (userAgent.Contains("Macintosh") || userAgent.Contains("Mac OS")) os = "macOS";
+            else if (userAgent.Contains("Android")) os = "Android";
+            else if (userAgent.Contains("iPhone") || userAgent.Contains("iPad")) os = "iOS";
+            else if (userAgent.Contains("Linux")) os = "Linux";
+
+            string browser = "Unknown Browser";
+            if (userAgent.Contains("Firefox")) browser = "Firefox";
+            else if (userAgent.Contains("Chrome")) browser = "Chrome";
+            else if (userAgent.Contains("Safari") && !userAgent.Contains("Chrome")) browser = "Safari";
+            else if (userAgent.Contains("Edge")) browser = "Edge";
+
+            string device = userAgent.Contains("Mobile") ? "Mobile" : "Desktop";
+            string sessionId = Guid.NewGuid().ToString();
+
+            var session = new UserSession
+            {
+                Id = sessionId,
+                UserId = user.Id,
+                EmployeeId = user.EmployeeId,
+                Role = user.Role?.Name ?? "Customer",
+                LoginTimestamp = DateTime.UtcNow,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
+                Browser = browser,
+                OperatingSystem = os,
+                Device = device
+            };
+
+            await _dbContext.UserSessions.AddAsync(session);
+
             // Audit login
             var auditLog = new AuditLog
             {
                 UserId = user.Id,
+                EmployeeId = user.EmployeeId,
                 UserName = user.FullName,
+                Role = user.Role?.Name ?? "Customer",
+                Module = "Auth",
                 Action = "Login",
                 TableName = "Users",
                 RecordId = user.Id.ToString(),
                 Timestamp = DateTime.UtcNow,
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
+                Browser = browser,
+                OperatingSystem = os,
+                Device = device,
+                Status = "Success",
                 Details = "Successful user authentication"
             };
-            await _unitOfWork.AuditLogs.AddAsync(auditLog);
-            await _unitOfWork.CompleteAsync();
+            await _dbContext.AuditLogs.AddAsync(auditLog);
+            await _dbContext.SaveChangesAsync();
 
-            return Ok(new AuthResponse { Token = token, User = userDto });
+            return Ok(new { token = token, user = userDto, sessionId = sessionId });
         }
 
         [HttpPost("verify-otp")]
@@ -140,6 +184,80 @@ namespace TataUisl.Api.Controllers
                 return BadRequest(new { message = "Email address not found." });
             }
             return Ok(new { message = "Password reset link sent to your registered email." });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
+        {
+            if (!string.IsNullOrEmpty(request.SessionId))
+            {
+                var session = await _dbContext.UserSessions.FindAsync(request.SessionId);
+                if (session != null)
+                {
+                    session.LogoutTimestamp = DateTime.UtcNow;
+                    session.SessionDuration = (int)(session.LogoutTimestamp.Value - session.LoginTimestamp).TotalSeconds;
+
+                    var user = await _dbContext.Users.FindAsync(session.UserId);
+                    var auditLog = new AuditLog
+                    {
+                        UserId = session.UserId,
+                        EmployeeId = session.EmployeeId,
+                        UserName = user?.FullName ?? "User",
+                        Role = session.Role,
+                        Module = "Auth",
+                        Action = "Logout",
+                        TableName = "UserSessions",
+                        RecordId = session.Id,
+                        Timestamp = DateTime.UtcNow,
+                        IpAddress = session.IpAddress ?? "127.0.0.1",
+                        Browser = session.Browser,
+                        OperatingSystem = session.OperatingSystem,
+                        Device = session.Device,
+                        Status = "Success",
+                        Details = $"User logged out. Session duration: {session.SessionDuration}s."
+                    };
+                    await _dbContext.AuditLogs.AddAsync(auditLog);
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+            return Ok(new { message = "Logged out successfully" });
+        }
+
+        [HttpPost("session-close")]
+        public async Task<IActionResult> SessionClose([FromBody] LogoutRequest request)
+        {
+            if (!string.IsNullOrEmpty(request.SessionId))
+            {
+                var session = await _dbContext.UserSessions.FindAsync(request.SessionId);
+                if (session != null && session.LogoutTimestamp == null && session.BrowserClosureTimestamp == null)
+                {
+                    session.BrowserClosureTimestamp = DateTime.UtcNow;
+                    session.SessionDuration = (int)(session.BrowserClosureTimestamp.Value - session.LoginTimestamp).TotalSeconds;
+
+                    var user = await _dbContext.Users.FindAsync(session.UserId);
+                    var auditLog = new AuditLog
+                    {
+                        UserId = session.UserId,
+                        EmployeeId = session.EmployeeId,
+                        UserName = user?.FullName ?? "User",
+                        Role = session.Role,
+                        Module = "Auth",
+                        Action = "Browser Closure",
+                        TableName = "UserSessions",
+                        RecordId = session.Id,
+                        Timestamp = DateTime.UtcNow,
+                        IpAddress = session.IpAddress ?? "127.0.0.1",
+                        Browser = session.Browser,
+                        OperatingSystem = session.OperatingSystem,
+                        Device = session.Device,
+                        Status = "Success",
+                        Details = $"Browser closed. Session duration: {session.SessionDuration}s."
+                    };
+                    await _dbContext.AuditLogs.AddAsync(auditLog);
+                    await _dbContext.SaveChangesAsync();
+                }
+            }
+            return Ok(new { message = "Session closed successfully" });
         }
 
         private static string HashPassword(string password)
@@ -164,5 +282,10 @@ namespace TataUisl.Api.Controllers
     public class ForgotPasswordRequest
     {
         public string Email { get; set; } = string.Empty;
+    }
+
+    public class LogoutRequest
+    {
+        public string SessionId { get; set; } = string.Empty;
     }
 }

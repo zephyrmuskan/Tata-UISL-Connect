@@ -29,9 +29,11 @@ builder.Services.AddDbContext<TataUislDbContext>(options =>
 });
 
 // 2. Configure Dependency Injection Repositories & Services
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IVerificationService, VerificationService>();
 
 // 3. Configure AutoMapper Mapping Profiles
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);

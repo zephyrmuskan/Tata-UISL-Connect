@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, ArrowRight } from 'lucide-react';
 import { workflowService } from '../services/api';
 import { type WorkflowRoute, type WorkflowStage, type OfficerDetail } from '../services/mockData';
 import { toast } from 'react-toastify';
@@ -155,33 +155,33 @@ export const WorkflowModal: React.FC<WorkflowModalProps> = ({
           initial={{ scale: 0.95, opacity: 0, y: 15 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 15 }}
-          className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-5xl shadow-2xl relative z-10 border border-gray-150 dark:border-slate-700 max-h-[90vh] flex flex-col overflow-hidden text-left"
+          className="bg-white dark:bg-slate-850 rounded-3xl w-full max-w-5xl shadow-2xl relative z-10 border border-gray-200 dark:border-slate-750 max-h-[90vh] flex flex-col overflow-hidden text-left"
         >
           {/* Header */}
-          <div className="bg-white dark:bg-slate-800 px-6 py-5 border-b border-gray-100 dark:border-slate-700/60 flex justify-between items-center">
-            <h3 className="font-extrabold text-sm text-gray-800 dark:text-white">Accept Application - {applicationNumber}</h3>
+          <div className="bg-gray-50/70 dark:bg-slate-900/50 px-6 py-5 border-b border-gray-150 dark:border-slate-750 flex justify-between items-center">
+            <h3 className="font-extrabold text-sm text-gray-900 dark:text-white">Accept & Assign Workflow Stage - {applicationNumber}</h3>
             <button 
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 transition"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 transition cursor-pointer"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           </div>
 
           {loading ? (
             <div className="p-16 flex flex-col items-center justify-center space-y-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-tata-blue"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#005BAC]"></div>
               <span className="text-xs text-gray-400 font-bold">Fetching route levels and available officers...</span>
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               
               {/* Configuration Section */}
-              <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-8 text-xs">
+              <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-8 text-xs bg-gray-50/50 dark:bg-slate-900/30 p-4 rounded-2xl border border-gray-200 dark:border-slate-750">
                 
                 {/* Level Group Selector */}
-                <div className="flex items-center space-x-2">
-                  <label className="font-bold text-gray-600 dark:text-gray-300 whitespace-nowrap">Level Group *</label>
+                <div className="flex items-center space-x-2.5">
+                  <label className="font-bold text-gray-700 dark:text-gray-200 whitespace-nowrap">Level Group *</label>
                   <select
                     value={selectedLevelGroup}
                     onChange={(e) => {
@@ -190,7 +190,7 @@ export const WorkflowModal: React.FC<WorkflowModalProps> = ({
                       const route = routes.find(r => r.levelGroup === lg);
                       if (route) handleRouteChange(route.id);
                     }}
-                    className="px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-lg font-bold text-gray-800 dark:text-white outline-none min-w-[180px]"
+                    className="px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] min-w-[180px]"
                   >
                     <option value="">Select Level Group</option>
                     {levelGroups.map((lg) => (
@@ -200,12 +200,12 @@ export const WorkflowModal: React.FC<WorkflowModalProps> = ({
                 </div>
 
                 {/* Select Route Selector */}
-                <div className="flex items-center space-x-2">
-                  <label className="font-bold text-gray-600 dark:text-gray-300 whitespace-nowrap">Select Route*</label>
+                <div className="flex items-center space-x-2.5">
+                  <label className="font-bold text-gray-700 dark:text-gray-200 whitespace-nowrap">Select Route *</label>
                   <select
                     value={selectedRouteId}
                     onChange={(e) => handleRouteChange(Number(e.target.value))}
-                    className="px-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-lg font-bold text-gray-800 dark:text-white outline-none min-w-[220px]"
+                    className="px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl font-bold text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-[#005BAC] min-w-[220px]"
                   >
                     <option value={0}>Select Route</option>
                     {filteredRoutes.map((r) => (
@@ -286,23 +286,35 @@ export const WorkflowModal: React.FC<WorkflowModalProps> = ({
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="bg-gray-50 dark:bg-slate-900/20 px-6 py-4 border-t border-gray-150 dark:border-slate-700/50 flex justify-end space-x-3.5">
+          {/* Action Buttons matching Reference Image 2 */}
+          <div className="bg-gray-50/70 dark:bg-slate-900/50 px-6 py-4 border-t border-gray-150 dark:border-slate-750 flex justify-between items-center">
             <button
               type="button"
               onClick={onClose}
-              className="px-4.5 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-250 text-xs font-bold rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition"
+              className="px-5 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-200 transition cursor-pointer"
             >
               Close
             </button>
-            <button
-              type="button"
-              onClick={() => handleSave(true)}
-              disabled={submitting}
-              className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition flex items-center"
-            >
-              {submitting ? 'Processing...' : 'Accept & forward to next'}
-            </button>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => toast.info("Workflow draft configuration saved.")}
+                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Save Draft
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSave(true)}
+                disabled={submitting}
+                className="px-6 py-2.5 bg-[#005BAC] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <span>{submitting ? 'Processing...' : 'Accept & Forward to Next Stage'}</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
           </div>
 
         </motion.div>
